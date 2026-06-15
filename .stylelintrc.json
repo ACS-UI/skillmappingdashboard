@@ -1,3 +1,11 @@
 {
-  "extends": ["stylelint-config-standard"]
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "selector-class-pattern": [
+      "^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z][a-z0-9]*(-[a-z0-9]+)*)?(--[a-z][a-z0-9]*(-[a-z0-9]+)*)?$",
+      {
+        "message": "Expected BEM-style class name (block__element--modifier). All custom blocks use BEM: __ separates block from element, -- separates block/element from modifier. The default stylelint-config-standard pattern rejects these separators, so this override allows them."
+      }
+    ]
+  }
 }
