@@ -1,1 +1,56 @@
 /* add global styles that can be loaded post LCP here */
+
+/* ── Manager view toggle (entry form ⇄ manager report) ── */
+.view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 0 20px;
+  padding: 4px;
+  border: 1px solid #d8dee8;
+  border-radius: 999px;
+  background: #fff;
+}
+
+/* Scoped under `.view-toggle` so these beat the global `a:any-link` color. */
+.view-toggle .view-toggle__option {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #637083;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+@media (width < 600px) {
+  .view-toggle .view-toggle__option {
+    padding: 5px 10px;
+    font-size: 0;
+  }
+
+  .view-toggle .view-toggle__option::before {
+    content: attr(data-short);
+    font-size: 0.78rem;
+  }
+}
+
+@media (width >= 600px) {
+  .view-toggle .view-toggle__option {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+  }
+}
+
+.view-toggle .view-toggle__option:hover {
+  color: #1473e6;
+}
+
+.view-toggle .view-toggle__option--active,
+.view-toggle .view-toggle__option--active:hover {
+  background: #1473e6;
+  color: #fff;
+}

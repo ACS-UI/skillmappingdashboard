@@ -1,0 +1,715 @@
+/* Fix the content area below the header — fills remaining viewport */
+.section.entry-form-container {
+  position: fixed;
+  inset: var(--nav-height) 0 0 0;
+  margin: 0 !important;
+  padding-top: 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Override global max-width so the form uses the full viewport width */
+.section.entry-form-container > div {
+  max-width: none;
+  padding: 0 16px 16px;
+}
+
+.entry-form {
+  --entry-form-accent: #1473e6;
+  --entry-form-accent-strong: #0d66d0;
+  --entry-form-border: #d8dee8;
+  --entry-form-border-strong: #bfd3ee;
+  --entry-form-surface: #fff;
+  --entry-form-surface-alt: #f8fbff;
+  --entry-form-text: #1f2937;
+  --entry-form-text-muted: #637083;
+  --entry-form-success: #0f766e;
+  --entry-form-danger: #c2410c;
+  --entry-form-shadow: 0 24px 48px rgb(15 23 42 / 10%);
+  --entry-form-focus: 0 0 0 3px rgb(20 115 230 / 12%);
+
+  padding-top: 8px;
+}
+
+.entry-form .entry-form__wrapper {
+  border: 1px solid var(--entry-form-border);
+  border-radius: 16px;
+  background: var(--entry-form-surface);
+  box-shadow: var(--entry-form-shadow);
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.entry-form .entry-form__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(135deg, #f0f6ff 0%, #fafcff 100%);
+  border-bottom: 1px solid var(--entry-form-border);
+}
+
+.entry-form .entry-form__heading {
+  margin: 0;
+  color: var(--entry-form-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.entry-form .entry-form__heading-sub {
+  margin: 2px 0 0;
+  color: var(--entry-form-text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.entry-form .entry-form__heading-accent {
+  display: block;
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--entry-form-accent);
+  margin-bottom: 6px;
+}
+
+.entry-form .entry-form__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--entry-form-border-strong);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--entry-form-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.entry-form .entry-form__meta::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  flex-shrink: 0;
+}
+
+/* ── Body ── */
+.entry-form .entry-form__body {
+  padding: 16px;
+}
+
+/* ── Table wrapper ── */
+.entry-form .entry-form__table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1.5px solid var(--entry-form-border);
+  border-radius: 10px;
+}
+
+/* ── Skills table ── */
+.entry-form .entry-form__skills-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Proportional column widths — fixed layout, no horizontal overflow */
+.entry-form .entry-form__skills-table thead tr {
+  background: var(--entry-form-surface-alt);
+  border-bottom: 1.5px solid var(--entry-form-border);
+}
+
+.entry-form .entry-form__skills-table thead th {
+  padding: 10px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--entry-form-text-muted);
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Proportional column widths â€” fixed layout, no horizontal overflow */
+.entry-form .entry-form__skills-table thead th:nth-child(1) { width: 20%; }
+.entry-form .entry-form__skills-table thead th:nth-child(2) { width: 12%; }
+.entry-form .entry-form__skills-table thead th:nth-child(3) { width: 16%; }
+.entry-form .entry-form__skills-table thead th:nth-child(4) { width: 16%; }
+.entry-form .entry-form__skills-table thead th:nth-child(5) { width: 12%; }
+.entry-form .entry-form__skills-table thead th:nth-child(6) { width: 15%; }
+.entry-form .entry-form__skills-table thead th:nth-child(7) { width: 9%; }
+
+.entry-form .entry-form__skills-table thead th:last-child {
+  width: 80px;
+  text-align: center;
+}
+
+/* ── Data rows ── */
+.entry-form .entry-form__data-row {
+  border-bottom: 1px solid #edf0f5;
+  transition: background 120ms ease;
+}
+
+.entry-form .entry-form__data-row:last-child {
+  border-bottom: none;
+}
+
+.entry-form .entry-form__data-row:hover {
+  background: var(--entry-form-surface-alt);
+}
+
+.entry-form .entry-form__data-row--editing {
+  background: #fffbeb;
+}
+
+.entry-form .entry-form__data-row td {
+  padding: 10px;
+  font-size: 0.88rem;
+  color: var(--entry-form-text);
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* ── Chips / badges ── */
+.entry-form .entry-form__skill-chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #edf5ff;
+  color: var(--entry-form-accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ── Multi-select (specialization) ── */
+.entry-form .entry-form__multi-select {
+  display: block;
+}
+
+.entry-form .entry-form__multi-trigger {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  padding: 0 30px 0 12px;
+  border: 1.5px solid var(--entry-form-border);
+  border-radius: 10px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23637083' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--entry-form-text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.entry-form .entry-form__multi-trigger:focus {
+  outline: none;
+  border-color: var(--entry-form-accent);
+  box-shadow: var(--entry-form-focus);
+}
+
+.entry-form__multi-panel {
+  position: fixed;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1.5px solid var(--entry-form-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 12%);
+  padding: 4px 0;
+}
+
+.entry-form__multi-panel[hidden] {
+  display: none;
+}
+
+.entry-form__multi-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.entry-form__multi-option:hover {
+  background: #f8fbff;
+}
+
+.entry-form__multi-option input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  accent-color: var(--entry-form-accent);
+  cursor: pointer;
+}
+
+/* ── Specialization chips (data rows) ── */
+.entry-form .entry-form__spec-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.entry-form .entry-form__spec-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f0f0ff;
+  color: #4338ca;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.entry-form .entry-form__cert-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.entry-form .entry-form__cert-badge--yes {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.entry-form .entry-form__cert-badge--no {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.entry-form .entry-form__cert-title {
+  font-size: 0.88rem;
+}
+
+.entry-form .entry-form__dash {
+  color: #c4cdd8;
+}
+
+/* ── Row action buttons ── */
+.entry-form .entry-form__row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.entry-form .entry-form__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--entry-form-border);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.entry-form .entry-form__icon-btn--edit {
+  color: var(--entry-form-text-muted);
+}
+
+.entry-form .entry-form__icon-btn--edit:hover {
+  border-color: var(--entry-form-accent);
+  color: var(--entry-form-accent);
+  background: #edf5ff;
+}
+
+.entry-form .entry-form__icon-btn--del {
+  color: #9ca3af;
+}
+
+.entry-form .entry-form__icon-btn--del:hover {
+  border-color: var(--entry-form-danger);
+  color: var(--entry-form-danger);
+}
+
+/* ── Dash center helper (title cell when cert = No) ── */
+.entry-form .entry-form__dash-center {
+  display: flex;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ── Input row (tfoot) ── */
+.entry-form .entry-form__skills-table .entry-form__input-row td {
+  padding: 10px 8px;
+  background: var(--entry-form-surface-alt);
+  border-top: 1.5px solid var(--entry-form-border);
+  vertical-align: top;
+}
+
+.entry-form .entry-form__skills-table .entry-form__input-row--editing td {
+  background: #fffbeb;
+  border-top-color: #fbbf24;
+}
+
+.entry-form .entry-form__skills-table .entry-form__input-row td:first-child {
+  padding-left: 12px;
+}
+
+.entry-form .entry-form__skills-table .entry-form__input-row td:last-child {
+  padding-right: 12px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* ── Select & text input ── */
+.entry-form .entry-form__select,
+.entry-form .entry-form__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1.5px solid var(--entry-form-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--entry-form-text);
+  font: inherit;
+  font-size: 0.88rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  appearance: none;
+}
+
+.entry-form .entry-form__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23637083' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+.entry-form .entry-form__select:focus,
+.entry-form .entry-form__input:focus {
+  outline: none;
+  border-color: var(--entry-form-accent);
+  box-shadow: var(--entry-form-focus);
+}
+
+.entry-form .entry-form__input::placeholder {
+  color: #9eaab8;
+}
+
+/* Column width is set via thead th:nth-child on table-layout: fixed */
+.entry-form .entry-form__spec-td {
+  overflow: hidden;
+}
+
+/* Cert title input appears in its own cell */
+.entry-form .entry-form__cert-title-wrap {
+  display: none;
+}
+
+/* ── Add / Save button ── */
+.entry-form .entry-form__add-btn {
+  height: 42px;
+  padding: 0 16px;
+  border: 1.5px solid var(--entry-form-accent);
+  border-radius: 10px;
+  background: var(--entry-form-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease;
+  width: 100%;
+}
+
+.entry-form .entry-form__add-btn:hover {
+  background: var(--entry-form-accent-strong);
+  border-color: var(--entry-form-accent-strong);
+}
+
+/* ── Inline edit actions (Save + Cancel as icons, single line) ── */
+.entry-form .entry-form__edit-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.entry-form .entry-form__icon-btn--save {
+  border-color: var(--entry-form-accent);
+  background: var(--entry-form-accent);
+  color: #fff;
+}
+
+.entry-form .entry-form__icon-btn--save:hover {
+  border-color: var(--entry-form-accent-strong);
+  background: var(--entry-form-accent-strong);
+}
+
+.entry-form .entry-form__icon-btn--cancel {
+  color: var(--entry-form-text-muted);
+}
+
+.entry-form .entry-form__icon-btn--cancel:hover {
+  border-color: var(--entry-form-danger);
+  color: var(--entry-form-danger);
+}
+
+.entry-form .entry-form__icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ── Messages ── */
+.entry-form .entry-form__message {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.entry-form .entry-form__message--error {
+  background: #fff2eb;
+  color: var(--entry-form-danger);
+}
+
+.entry-form .entry-form__message--success {
+  background: #ecfdf5;
+  color: var(--entry-form-success);
+}
+
+.entry-form .entry-form__message--info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* ── Previously submitted skills (read-only, below the form) ── */
+.entry-form .entry-form__previous {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--entry-form-border);
+}
+
+.entry-form .entry-form__previous-title {
+  margin: 0 0 14px;
+  color: var(--entry-form-text-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ── Mobile card layout (replaces horizontal table scroll) ── */
+@media (width < 600px) {
+  /* Drop the horizontal scroll constraint; display: block so children's
+     width: 100% resolves against the wrapper, not table intrinsic size */
+  .entry-form .entry-form__skills-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .entry-form .entry-form__multi-select,
+  .entry-form .entry-form__multi-trigger {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* thead is replaced by per-cell data-label labels */
+  .entry-form .entry-form__skills-table thead {
+    display: none;
+  }
+
+  /* tbody and tfoot become block containers */
+  .entry-form .entry-form__skills-table tbody,
+  .entry-form .entry-form__skills-table tfoot {
+    display: block;
+  }
+
+  /* ── Input row → stacked form fields ── */
+  .entry-form .entry-form__input-row {
+    display: block;
+    border-top: 1.5px solid var(--entry-form-border);
+  }
+
+  .entry-form .entry-form__input-row td {
+    display: block;
+    padding: 8px 12px;
+    border-top: none;
+    border-bottom: 1px solid #edf0f5;
+    background: var(--entry-form-surface-alt);
+    vertical-align: top;
+  }
+
+  /* Label above each field */
+  .entry-form .entry-form__input-row td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--entry-form-text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* No label or border for the action cell */
+  .entry-form .entry-form__input-row .entry-form__action-cell {
+    border-bottom: none;
+  }
+
+  .entry-form .entry-form__input-row .entry-form__action-cell::before {
+    display: none;
+  }
+
+  /* ── Data rows → cards ── */
+  .entry-form .entry-form__data-row {
+    display: block;
+    border: 1px solid var(--entry-form-border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .entry-form .entry-form__data-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .entry-form .entry-form__data-row td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f0f2f5;
+    text-align: right;
+  }
+
+  /* Label prefix from data-label attribute */
+  .entry-form .entry-form__data-row td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--entry-form-text-muted);
+    flex-shrink: 0;
+    margin-right: 12px;
+    text-align: left;
+  }
+
+  .entry-form .entry-form__data-row td:last-child {
+    border-bottom: none;
+  }
+
+  /* Action cell — center buttons, no label */
+  .entry-form .entry-form__data-row .entry-form__action-cell {
+    justify-content: center;
+  }
+
+  .entry-form .entry-form__data-row .entry-form__action-cell::before {
+    display: none;
+  }
+
+  /* Chips align to the right in the card value position */
+  .entry-form .entry-form__spec-chips {
+    justify-content: flex-end;
+  }
+
+  /* Fixed-width constraint doesn't apply when stacked */
+  .entry-form .entry-form__spec-td {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .entry-form .entry-form__add-btn {
+    width: 100%;
+  }
+
+  /* Edit actions (Save+Cancel) stay centered */
+  .entry-form .entry-form__edit-actions {
+    justify-content: center;
+  }
+}
+
+/* ── Responsive ── */
+@media (width >= 600px) {
+  .entry-form .entry-form__wrapper {
+    border-radius: 20px;
+  }
+
+  .entry-form .entry-form__header {
+    padding: 18px 24px 16px;
+  }
+
+  .entry-form .entry-form__heading {
+    font-size: 1.75rem;
+  }
+
+  .entry-form .entry-form__body {
+    padding: 20px 24px;
+  }
+
+  .entry-form .entry-form__table-wrap {
+    border-radius: 14px;
+  }
+
+  .entry-form .entry-form__skills-table thead th {
+    padding: 12px 14px;
+  }
+
+  .entry-form .entry-form__data-row td {
+    padding: 12px 14px;
+  }
+
+  .entry-form .entry-form__icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (width >= 900px) {
+  .entry-form .entry-form__wrapper {
+    border-radius: 24px;
+  }
+
+  .entry-form .entry-form__header {
+    padding: 22px 36px 18px;
+  }
+
+  .entry-form .entry-form__heading {
+    font-size: 2rem;
+  }
+
+  .entry-form .entry-form__body {
+    padding: 24px 36px;
+  }
+
+  .entry-form .entry-form__table-wrap {
+    border-radius: 16px;
+  }
+
+  .entry-form .entry-form__skills-table thead th {
+    padding: 12px 16px;
+  }
+
+  .entry-form .entry-form__data-row td {
+    padding: 13px 16px;
+  }
+}
