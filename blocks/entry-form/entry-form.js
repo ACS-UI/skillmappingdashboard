@@ -199,7 +199,16 @@ function buildCustomSelect(options, currentValue, onChange) {
   }
 
   searchInput.addEventListener('input', () => updateList(searchInput.value));
-  searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') closePanel(); });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (addRow.style.display === 'flex') {
+      addRow.click();
+      return;
+    }
+    const firstOption = listView.querySelector('.entry-form__single-option');
+    if (firstOption) firstOption.click();
+  });
 
   addRow.addEventListener('click', () => {
     const customVal = (searchInput.value || '').trim();
@@ -722,7 +731,7 @@ export default async function decorate(block) {
         return renderInputRow(state.editInput, 'edit');
       }
 
-      const expLabel = `${s.months} month${s.months === 1 ? '' : 's'}`;
+      const expLabel = String(s.months);
 
       const tr = document.createElement('tr');
       tr.className = `entry-form__data-row${state.editingIndex === i ? ' entry-form__data-row--editing' : ''}`;

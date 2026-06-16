@@ -52,20 +52,19 @@
 
 .entry-form .entry-form__heading {
   margin: 0;
-  color: var(--entry-form-text);
-  font-family: var(--body-font-family);
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  color: var(--entry-form-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .entry-form .entry-form__heading-sub {
-  margin: 2px 0 0;
-  color: var(--entry-form-text-muted);
-  font-family: var(--body-font-family);
-  font-size: 1.6rem;
-  font-weight: 500;
+  margin: 4px 0 0;
+  color: var(--entry-form-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .entry-form .entry-form__heading-accent {

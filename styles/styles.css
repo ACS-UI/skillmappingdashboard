@@ -20,8 +20,8 @@
   --link-hover-color: #1d3ecf;
 
   /* fonts */
-  --body-font-family: inter, -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
-  --heading-font-family: inter, -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  --body-font-family: 'Plus Jakarta Sans', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
+  --heading-font-family: 'Plus Jakarta Sans', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
 
   /* body sizes */
   --body-font-size-m: 22px;
@@ -106,8 +106,7 @@ h5,
 h6 {
   margin-top: 0.8em;
   margin-bottom: 0.25em;
-  font-family: var(--heading-font-family);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.25;
   scroll-margin: 40px;
 }
