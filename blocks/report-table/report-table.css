@@ -124,6 +124,10 @@
   gap: 8px;
 }
 
+.report-table .report-table__legend-initial {
+  font-weight: 800;
+}
+
 .report-table .report-table__button {
   min-height: 40px;
   padding: 0 20px;
@@ -428,6 +432,46 @@
 .report-table .report-table__table td.report-table__cell-count {
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Pagination ── */
+.report-table .report-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+
+.report-table .report-table__page-btn {
+  padding: 6px 18px;
+  border: 1.5px solid var(--report-table-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--report-table-text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.report-table .report-table__page-btn:hover:not(:disabled) {
+  border-color: var(--report-table-accent);
+  color: var(--report-table-accent);
+}
+
+.report-table .report-table__page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.report-table .report-table__page-info {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--report-table-text-muted);
+  min-width: 60px;
+  text-align: center;
 }
 
 /* ── Location filter ── */

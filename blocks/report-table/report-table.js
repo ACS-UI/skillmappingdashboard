@@ -166,44 +166,18 @@ function downloadCsv(filename, content) {
  * @param {Map} skillRarity per-skill rarity info from computeSkillRarity()
  */
 function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(employees.length / PAGE_SIZE) || 1;
+
   body.append(createElement('h3', 'report-table__subheading', 'Skills by rarity tier'));
 
   // Mobile card list (hidden at >= 600px via CSS)
   const cardList = createElement('div', 'report-table__tier-cards');
-  employees.forEach((emp) => {
-    const byTier = groupSkillsByTier(emp.skills, skillRarity);
-    const card = createElement('div', 'report-table__emp-card');
-    card.append(createElement('div', 'report-table__emp-card-name', emp.name));
-    const tiersDiv = createElement('div', 'report-table__emp-card-tiers');
-    RARITY_TIERS.forEach((tier) => {
-      const tierSkills = byTier.get(tier.id) || [];
-      if (!tierSkills.length) return;
-      const section = createElement('div', `report-table__emp-card-tier report-table__emp-card-tier--${tier.id}`);
-      section.append(createElement('div', 'report-table__emp-card-tier-label', tier.label));
-      const skillsDiv = createElement('div', 'report-table__emp-card-skills');
-      tierSkills.forEach((skill) => {
-        const skillRow = createElement('div', 'report-table__emp-card-skill');
-        const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-        skillRow.append(createElement('span', 'report-table__skill-label', skill.name));
-        if (initial) {
-          skillRow.append(createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
-        }
-        skillRow.append(createElement('span', 'report-table__emp-card-months', skill.expInMonths != null ? `${skill.expInMonths} M` : '—'));
-        skillsDiv.append(skillRow);
-      });
-      section.append(skillsDiv);
-      tiersDiv.append(section);
-    });
-    card.append(tiersDiv);
-    cardList.append(card);
-  });
-  body.append(cardList);
 
+  // Desktop table — thead is static, tbody is repopulated per page
   const tableWrapper = createElement('div', 'report-table__table-wrapper report-table__table-wrapper--tiers');
   const table = createElement('table', 'report-table__table report-table__table--tiers');
 
-  // ── Header: Employee (rowspan 2), then a colspan-2 banner per tier, then a
-  //    Skill / Months sub-column row. ──
   const thead = document.createElement('thead');
   const groupRow = document.createElement('tr');
   const employeeTh = createElement('th', 'report-table__col-employee', 'Employee');
@@ -222,174 +196,102 @@ function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
   thead.append(groupRow, subRow);
   table.append(thead);
 
-  // ── Body: skills zipped row-by-row across tiers so entries align side-by-side
-  //    (row 0 = first skill of each tier, row 1 = second, …). Employee name
-  //    spans all rows for that employee. A dark rule separates employees.
   const tbody = document.createElement('tbody');
-  employees.forEach((emp) => {
-    const byTier = groupSkillsByTier(emp.skills, skillRarity);
-    const rowCount = Math.max(...[...byTier.values()].map((s) => s.length), 1);
-
-    for (let i = 0; i < rowCount; i += 1) {
-      const tr = document.createElement('tr');
-      if (i === 0) {
-        tr.classList.add('report-table__row--emp-start');
-        const nameTd = createElement('td', 'report-table__cell-employee', emp.name);
-        nameTd.rowSpan = rowCount;
-        tr.append(nameTd);
-      }
-      RARITY_TIERS.forEach((tier) => {
-        const skill = byTier.get(tier.id)?.[i];
-        const skillTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--lead`);
-        const monthsTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--trail`);
-        if (skill) {
-          const name = createElement('span', 'report-table__skill-label', skill.name);
-          const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-          if (initial) {
-            skillTd.append(name, createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
-          } else {
-            skillTd.append(name);
-          }
-          monthsTd.textContent = skill.expInMonths != null ? `${skill.expInMonths} M` : '—';
-        }
-        tr.append(skillTd, monthsTd);
-      });
-      tbody.append(tr);
-    }
-  });
   table.append(tbody);
-
   tableWrapper.append(table);
-  body.append(tableWrapper);
+
+  const pagination = createElement('div', 'report-table__pagination');
+
+  body.append(cardList, tableWrapper, pagination);
+
+  function renderPage(page) {
+    const start = page * PAGE_SIZE;
+    const pageEmployees = employees.slice(start, start + PAGE_SIZE);
+
+    // ── Mobile cards ──
+    cardList.textContent = '';
+    pageEmployees.forEach((emp) => {
+      const byTier = groupSkillsByTier(emp.skills, skillRarity);
+      const card = createElement('div', 'report-table__emp-card');
+      card.append(createElement('div', 'report-table__emp-card-name', emp.name));
+      const tiersDiv = createElement('div', 'report-table__emp-card-tiers');
+      RARITY_TIERS.forEach((tier) => {
+        const tierSkills = byTier.get(tier.id) || [];
+        if (!tierSkills.length) return;
+        const section = createElement('div', `report-table__emp-card-tier report-table__emp-card-tier--${tier.id}`);
+        section.append(createElement('div', 'report-table__emp-card-tier-label', tier.label));
+        const skillsDiv = createElement('div', 'report-table__emp-card-skills');
+        tierSkills.forEach((skill) => {
+          const skillRow = createElement('div', 'report-table__emp-card-skill');
+          const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
+          skillRow.append(createElement('span', 'report-table__skill-label', skill.name));
+          if (initial) {
+            skillRow.append(createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
+          }
+          skillRow.append(createElement('span', 'report-table__emp-card-months', skill.expInMonths != null ? `${skill.expInMonths} M` : '—'));
+          skillsDiv.append(skillRow);
+        });
+        section.append(skillsDiv);
+        tiersDiv.append(section);
+      });
+      card.append(tiersDiv);
+      cardList.append(card);
+    });
+
+    // ── Desktop table body ──
+    tbody.textContent = '';
+    pageEmployees.forEach((emp) => {
+      const byTier = groupSkillsByTier(emp.skills, skillRarity);
+      const rowCount = Math.max(...[...byTier.values()].map((s) => s.length), 1);
+      for (let i = 0; i < rowCount; i += 1) {
+        const tr = document.createElement('tr');
+        if (i === 0) {
+          tr.classList.add('report-table__row--emp-start');
+          const nameTd = createElement('td', 'report-table__cell-employee', emp.name);
+          nameTd.rowSpan = rowCount;
+          tr.append(nameTd);
+        }
+        RARITY_TIERS.forEach((tier) => {
+          const skill = byTier.get(tier.id)?.[i];
+          const skillTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--lead`);
+          const monthsTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--trail`);
+          if (skill) {
+            const name = createElement('span', 'report-table__skill-label', skill.name);
+            const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
+            if (initial) {
+              skillTd.append(name, createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
+            } else {
+              skillTd.append(name);
+            }
+            monthsTd.textContent = skill.expInMonths != null ? `${skill.expInMonths} M` : '—';
+          }
+          tr.append(skillTd, monthsTd);
+        });
+        tbody.append(tr);
+      }
+    });
+
+    // ── Pagination controls ──
+    pagination.textContent = '';
+    if (totalPages <= 1) return;
+
+    const prevBtn = createElement('button', 'report-table__page-btn', '← Prev');
+    prevBtn.type = 'button';
+    prevBtn.disabled = page === 0;
+    prevBtn.addEventListener('click', () => renderPage(page - 1));
+
+    const pageInfo = createElement('span', 'report-table__page-info', `${page + 1} of ${totalPages}`);
+
+    const nextBtn = createElement('button', 'report-table__page-btn', 'Next →');
+    nextBtn.type = 'button';
+    nextBtn.disabled = page === totalPages - 1;
+    nextBtn.addEventListener('click', () => renderPage(page + 1));
+
+    pagination.append(prevBtn, pageInfo, nextBtn);
+  }
+
+  renderPage(0);
 }
-
-// const DUMMY_SKILL_REPORT = {
-//   employees: [
-//     {
-//       name: 'Atul Bansal',
-//       email: 'atul.bansal',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 4, expInMonths: 48 },
-//         { name: 'HTML', proficiencyLevel: 4, expInMonths: 36 },
-//         { name: 'JavaScript', proficiencyLevel: 3, expInMonths: 24 },
-//         { name: 'React', proficiencyLevel: 3, expInMonths: 18 },
-//         { name: 'GraphQL', proficiencyLevel: 2, expInMonths: 12 },
-//       ],
-//     },
-//     {
-//       name: 'Priya Sharma',
-//       email: 'priya.sharma',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 3, expInMonths: 36 },
-//         { name: 'HTML', proficiencyLevel: 3, expInMonths: 24 },
-//         { name: 'JavaScript', proficiencyLevel: 2, expInMonths: 18 },
-//         { name: 'TypeScript', proficiencyLevel: 2, expInMonths: 15 },
-//         { name: 'Vue', proficiencyLevel: 2, expInMonths: 10 },
-//       ],
-//     },
-//     {
-//       name: 'Rahul Verma',
-//       email: 'rahul.verma',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 2, expInMonths: 24 },
-//         { name: 'HTML', proficiencyLevel: 2, expInMonths: 18 },
-//         { name: 'JavaScript', proficiencyLevel: 2, expInMonths: 14 },
-//         { name: 'React', proficiencyLevel: 2, expInMonths: 12 },
-//         { name: 'Vue', proficiencyLevel: 1, expInMonths: 8 },
-//       ],
-//     },
-//     {
-//       name: 'Sneha Patel',
-//       email: 'sneha.patel',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 4, expInMonths: 40 },
-//         { name: 'HTML', proficiencyLevel: 3, expInMonths: 30 },
-//         { name: 'TypeScript', proficiencyLevel: 3, expInMonths: 20 },
-//         { name: 'React', proficiencyLevel: 2, expInMonths: 16 },
-//         { name: 'GraphQL', proficiencyLevel: 1, expInMonths: 8 },
-//       ],
-//     },
-//     {
-//       name: 'Kiran Kumar',
-//       email: 'kiran.kumar',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 3, expInMonths: 28 },
-//         { name: 'HTML', proficiencyLevel: 3, expInMonths: 22 },
-//         { name: 'JavaScript', proficiencyLevel: 3, expInMonths: 20 },
-//         { name: 'TypeScript', proficiencyLevel: 2, expInMonths: 12 },
-//       ],
-//     },
-//     {
-//       name: 'Divya Nair',
-//       email: 'divya.nair',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 2, expInMonths: 20 },
-//         { name: 'HTML', proficiencyLevel: 2, expInMonths: 16 },
-//         { name: 'JavaScript', proficiencyLevel: 2, expInMonths: 12 },
-//         { name: 'React', proficiencyLevel: 2, expInMonths: 10 },
-//       ],
-//     },
-//     {
-//       name: 'Amit Singh',
-//       email: 'amit.singh',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 3, expInMonths: 32 },
-//         { name: 'HTML', proficiencyLevel: 3, expInMonths: 26 },
-//         { name: 'JavaScript', proficiencyLevel: 2, expInMonths: 18 },
-//       ],
-//     },
-//     {
-//       name: 'Pooja Iyer',
-//       email: 'pooja.iyer',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 1, expInMonths: 12 },
-//         { name: 'HTML', proficiencyLevel: 1, expInMonths: 10 },
-//       ],
-//     },
-//     {
-//       name: 'Vijay Reddy',
-//       email: 'vijay.reddy',
-//       skills: [
-//         { name: 'CSS', proficiencyLevel: 2, expInMonths: 18 },
-//         { name: 'HTML', proficiencyLevel: 2, expInMonths: 14 },
-//         { name: 'JavaScript', proficiencyLevel: 1, expInMonths: 10 },
-//         { name: 'WebGL', proficiencyLevel: 1, expInMonths: 6 },
-//       ],
-//     },
-//     {
-//       name: 'Lakshmi Das',
-//       email: 'lakshmi.das',
-//       skills: [
-//         { name: 'HTML', proficiencyLevel: 2, expInMonths: 14 },
-//         { name: 'JavaScript', proficiencyLevel: 1, expInMonths: 10 },
-//       ],
-//     },
-//   ],
-//   metadata: {
-//     proficiencyLevels: [
-//       { level: 1, label: 'Foundational' },
-//       { level: 2, label: 'Developing' },
-//       { level: 3, label: 'Professional' },
-//       { level: 4, label: 'Expert' },
-//       { level: 5, label: 'Master' },
-//     ],
-//   },
-// };
-
-// const DUMMY_DISTRIBUTION = new Map([
-//   ['noida', new Map([
-//     ['generic', new Map([['P20', 5], ['P30', 3], ['P40', 2], ['P50', 1]])],
-//     ['niche', new Map([['P20', 2], ['P30', 2], ['P40', 1], ['P50', 0]])],
-//     ['super-niche', new Map([['P20', 1], ['P30', 1], ['P40', 0], ['P50', 0]])],
-//     ['ultra-niche', new Map([['P20', 0], ['P30', 0], ['P40', 0], ['P50', 0]])],
-//   ])],
-//   ['bangalore', new Map([
-//     ['generic', new Map([['P20', 3], ['P30', 2], ['P40', 1], ['P50', 0]])],
-//     ['niche', new Map([['P20', 2], ['P30', 1], ['P40', 1], ['P50', 1]])],
-//     ['super-niche', new Map([['P20', 1], ['P30', 0], ['P40', 1], ['P50', 0]])],
-//     ['ultra-niche', new Map([['P20', 1], ['P30', 0], ['P40', 0], ['P50', 0]])],
-//   ])],
-// ]);
 
 /**
  * Builds a location → tier → P-level → employee count distribution from the
@@ -539,8 +441,14 @@ function renderTable(block, config, data, skillRarity, distribution) {
 
   const legend = createElement('div', 'report-table__legend');
   proficiencyLevels.forEach(({ level, label }) => {
+    const initial = label.charAt(0).toUpperCase();
     const item = createElement('span', 'report-table__legend-item');
-    item.append(createElement('span', `report-table__badge report-table__badge--l${level}`, label));
+    const badge = createElement('span', `report-table__badge report-table__badge--l${level}`);
+    badge.append(
+      createElement('span', 'report-table__legend-initial', `(${initial})`),
+      document.createTextNode(` ${label}`),
+    );
+    item.append(badge);
     legend.append(item);
   });
 
