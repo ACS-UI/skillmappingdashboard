@@ -5,7 +5,7 @@
 
 /* Cap content width and centre it, consistent with entry-form */
 .section.report-table-container > div {
-  max-width: 1024px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -71,6 +71,7 @@
 .report-table .report-table__heading {
   margin: 0;
   color: var(--report-table-text);
+  font-family: var(--body-font-family);
   font-size: 1.4rem;
   font-weight: 800;
   line-height: 1.1;

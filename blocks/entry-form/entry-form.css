@@ -10,7 +10,7 @@
 
 /* Cap content width and centre it within the fixed-position section */
 .section.entry-form-container > div {
-  max-width: 1024px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px 16px;
 }
@@ -53,6 +53,7 @@
 .entry-form .entry-form__heading {
   margin: 0;
   color: var(--entry-form-text);
+  font-family: var(--body-font-family);
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.1;
@@ -62,6 +63,7 @@
 .entry-form .entry-form__heading-sub {
   margin: 2px 0 0;
   color: var(--entry-form-text-muted);
+  font-family: var(--body-font-family);
   font-size: 1.6rem;
   font-weight: 500;
 }
@@ -139,8 +141,7 @@
   line-height: 1.3;
 }
 
-/* Proportional column widths — fixed layout, no horizontal overflow */
-/* Form table (7 cols: skill + 5 data + action) */
+/* Proportional column widths — fixed layout, no horizontal overflow. Form table (7 cols: skill + 5 data + action) */
 .entry-form .entry-form__skills-table thead th:nth-child(1) { width: 20%; }
 .entry-form .entry-form__skills-table thead th:nth-child(2) { width: 12%; }
 .entry-form .entry-form__skills-table thead th:nth-child(3) { width: 16%; }
@@ -176,6 +177,13 @@
 }
 
 /* ── Previous entries header row ── */
+.entry-form .entry-form__previous-title {
+  margin: 0;
+  color: var(--entry-form-text-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .entry-form .entry-form__previous-header {
   display: flex;
   align-items: center;
@@ -222,14 +230,14 @@
   color: #fff;
 }
 
-.entry-form .entry-form__selection-btn:hover:not(:disabled) {
-  background: var(--entry-form-accent-strong);
-  border-color: var(--entry-form-accent-strong);
-}
-
 .entry-form .entry-form__selection-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.entry-form .entry-form__selection-btn:hover:not(:disabled) {
+  background: var(--entry-form-accent-strong);
+  border-color: var(--entry-form-accent-strong);
 }
 
 .entry-form .entry-form__selection-btn--danger {
@@ -295,6 +303,7 @@
 /* ── Multi-select (specialization) ── */
 .entry-form .entry-form__multi-select {
   display: block;
+  width: 100%;
 }
 
 .entry-form .entry-form__multi-trigger {
@@ -325,13 +334,12 @@
 .entry-form__multi-panel {
   position: fixed;
   z-index: 1000;
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   background: #fff;
   border: 1.5px solid var(--entry-form-border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgb(15 23 42 / 12%);
-  padding: 4px 0;
 }
 
 .entry-form__multi-panel[hidden] {
@@ -358,6 +366,24 @@
   flex-shrink: 0;
   accent-color: var(--entry-form-accent);
   cursor: pointer;
+}
+
+/* ── Single-select option items (skill dropdown) ── */
+.entry-form__single-option {
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.entry-form__single-option:hover {
+  background: #f8fbff;
+}
+
+.entry-form__single-option--selected {
+  color: var(--entry-form-accent);
+  font-weight: 600;
+  background: #edf5ff;
 }
 
 /* ── Specialization chips (data rows) ── */
@@ -518,6 +544,63 @@
   overflow: hidden;
 }
 
+/* ── Skill dropdown: search bar ── */
+.entry-form__single-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--entry-form-border);
+  background: var(--entry-form-surface-alt);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.entry-form__single-search .ti-search {
+  color: var(--entry-form-text-muted);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.entry-form__single-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--entry-form-text);
+}
+
+.entry-form__single-search-input::placeholder {
+  color: var(--entry-form-text-muted);
+}
+
+/* ── Skill dropdown: "Add as custom skill" row ── */
+.entry-form__single-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  color: var(--entry-form-accent);
+  border-top: 1px solid var(--entry-form-border);
+  cursor: pointer;
+  background: #f0f6ff;
+  transition: background 120ms ease;
+}
+
+.entry-form__single-add:hover {
+  background: #e3effc;
+}
+
+.entry-form__single-add .ti-plus {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
 /* Cert title input appears in its own cell */
 .entry-form .entry-form__cert-title-wrap {
   display: none;
@@ -608,13 +691,6 @@
   margin-top: 28px;
   padding-top: 24px;
   border-top: 1px solid var(--entry-form-border);
-}
-
-.entry-form .entry-form__previous-title {
-  margin: 0;
-  color: var(--entry-form-text-muted);
-  font-size: 0.95rem;
-  font-weight: 700;
 }
 
 /* ── Mobile + tablet card layout (replaces horizontal table scroll below 900px) ── */
