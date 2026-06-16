@@ -167,9 +167,16 @@ function downloadCsv(filename, content) {
  */
 function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
   const PAGE_SIZE = 10;
-  const totalPages = Math.ceil(employees.length / PAGE_SIZE) || 1;
+  let filtered = employees;
 
   body.append(createElement('h3', 'report-table__subheading', 'Skills by rarity tier'));
+
+  const searchWrap = createElement('div', 'report-table__search-wrap');
+  const searchInput = createElement('input', 'report-table__search');
+  searchInput.type = 'search';
+  searchInput.placeholder = 'Search by employee name…';
+  searchInput.setAttribute('aria-label', 'Search employees');
+  searchWrap.append(searchInput);
 
   // Mobile card list (hidden at >= 600px via CSS)
   const cardList = createElement('div', 'report-table__tier-cards');
@@ -201,12 +208,20 @@ function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
   tableWrapper.append(table);
 
   const pagination = createElement('div', 'report-table__pagination');
+  const emptyMsg = createElement('p', 'report-table__search-empty', 'No employees match your search.');
+  emptyMsg.hidden = true;
 
-  body.append(cardList, tableWrapper, pagination);
+  body.append(searchWrap, cardList, tableWrapper, emptyMsg, pagination);
 
   function renderPage(page) {
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+    const hasResults = filtered.length > 0;
+    emptyMsg.hidden = hasResults;
+    tableWrapper.hidden = !hasResults;
+    cardList.hidden = !hasResults;
+    if (!hasResults) { pagination.textContent = ''; return; }
     const start = page * PAGE_SIZE;
-    const pageEmployees = employees.slice(start, start + PAGE_SIZE);
+    const pageEmployees = filtered.slice(start, start + PAGE_SIZE);
 
     // ── Mobile cards ──
     cardList.textContent = '';
@@ -289,6 +304,12 @@ function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
 
     pagination.append(prevBtn, pageInfo, nextBtn);
   }
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    filtered = q ? employees.filter((emp) => emp.name.toLowerCase().includes(q)) : employees;
+    renderPage(0);
+  });
 
   renderPage(0);
 }
