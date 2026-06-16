@@ -62,7 +62,7 @@
 .entry-form .entry-form__heading-sub {
   margin: 2px 0 0;
   color: var(--entry-form-text-muted);
-  font-size: 0.95rem;
+  font-size: 1.6rem;
   font-weight: 500;
 }
 
@@ -695,7 +695,7 @@
   }
 
   .entry-form .entry-form__heading {
-    font-size: 2rem;
+    font-size: 1rem;
   }
 
   .entry-form .entry-form__body {
