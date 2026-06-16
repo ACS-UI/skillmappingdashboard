@@ -3,22 +3,11 @@
   padding-top: 8px;
 }
 
-/* Let the report table use the full viewport width instead of the global 1200px cap */
+/* Cap content width and centre it, consistent with entry-form */
 .section.report-table-container > div {
-  max-width: none;
+  max-width: 1024px;
+  margin: 0 auto;
   padding: 0 16px;
-}
-
-@media (width >= 600px) {
-  .section.report-table-container > div {
-    padding: 0 24px;
-  }
-}
-
-@media (width >= 900px) {
-  .section.report-table-container > div {
-    padding: 0 40px;
-  }
 }
 
 .report-table {

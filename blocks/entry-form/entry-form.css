@@ -8,9 +8,10 @@
   overflow-y: auto;
 }
 
-/* Override global max-width so the form uses the full viewport width */
+/* Cap content width and centre it within the fixed-position section */
 .section.entry-form-container > div {
-  max-width: none;
+  max-width: 1024px;
+  margin: 0 auto;
   padding: 0 16px 16px;
 }
 
@@ -514,8 +515,8 @@
   font-weight: 700;
 }
 
-/* ── Mobile card layout (replaces horizontal table scroll) ── */
-@media (width < 600px) {
+/* ── Mobile + tablet card layout (replaces horizontal table scroll below 900px) ── */
+@media (width < 900px) {
   /* Drop the horizontal scroll constraint; display: block so children's
      width: 100% resolves against the wrapper, not table intrinsic size */
   .entry-form .entry-form__skills-table {
