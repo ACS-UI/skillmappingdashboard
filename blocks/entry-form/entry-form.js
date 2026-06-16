@@ -103,6 +103,90 @@ function buildSelect(options, currentValue) {
   return sel;
 }
 
+function buildCustomSelect(options, currentValue, onChange) {
+  let selected = currentValue || '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'entry-form__multi-select';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'entry-form__multi-trigger';
+
+  const panel = document.createElement('div');
+  panel.className = 'entry-form__multi-panel entry-form__single-panel';
+  panel.hidden = true;
+  document.body.append(panel);
+
+  function updateTrigger() {
+    const match = options.find((o) => o.value === selected);
+    trigger.textContent = match && match.value ? match.label : options[0].label;
+  }
+
+  function positionPanel() {
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top = `${rect.bottom + 4}px`;
+    panel.style.left = `${rect.left}px`;
+    panel.style.width = `${rect.width}px`;
+  }
+
+  function closeOnOutside(e) {
+    if (!wrap.contains(e.target) && !panel.contains(e.target)) {
+      panel.hidden = true;
+      document.removeEventListener('click', closeOnOutside);
+    }
+  }
+
+  function closePanel() {
+    panel.hidden = true;
+    document.removeEventListener('click', closeOnOutside);
+  }
+
+  options.forEach(({ value, label }) => {
+    if (value === '') return;
+    const item = document.createElement('div');
+    item.className = 'entry-form__single-option';
+    item.textContent = label;
+    if (value === selected) item.classList.add('entry-form__single-option--selected');
+    item.addEventListener('click', () => {
+      selected = value;
+      panel.querySelectorAll('.entry-form__single-option').forEach((el) => el.classList.remove('entry-form__single-option--selected'));
+      item.classList.add('entry-form__single-option--selected');
+      updateTrigger();
+      closePanel();
+      onChange(value);
+    });
+    panel.append(item);
+  });
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.hidden) {
+      positionPanel();
+      panel.hidden = false;
+      document.addEventListener('click', closeOnOutside);
+    } else {
+      closePanel();
+    }
+  });
+
+  multiPanelCleanups.set(panel, () => {
+    document.removeEventListener('click', closeOnOutside);
+    panel.remove();
+  });
+
+  // Expose a reset method so the back button can clear the selection
+  wrap.resetValue = () => {
+    selected = '';
+    updateTrigger();
+    panel.querySelectorAll('.entry-form__single-option').forEach((el) => el.classList.remove('entry-form__single-option--selected'));
+  };
+
+  updateTrigger();
+  wrap.append(trigger);
+  return wrap;
+}
+
 function buildMultiSelect(options, initialValues, onChange) {
   let current = [...initialValues];
 
@@ -280,7 +364,8 @@ export default async function decorate(block) {
       const data = res?.data || {};
       if (data.email) state.email = data.email;
       if (data.name) state.name = data.name;
-      state.savedRows = (data.skills || []).map(mapServerSkillToRow);
+      // Reverse so the most recently added skill appears at the top (LIFO).
+      state.savedRows = (data.skills || []).map(mapServerSkillToRow).reverse();
       state.savedSkillNames = state.savedRows.map((r) => r.skillName);
       if (!silent) render();
     } catch (err) {
@@ -366,6 +451,9 @@ export default async function decorate(block) {
         skill.certification = { name: input.certTitle.trim() };
         if (input.certImageUrl) skill.certification.imageUrl = input.certImageUrl;
       }
+      const alreadyExists = state.savedSkillNames.some(
+        (n) => n.toLowerCase() === skillName.toLowerCase(),
+      );
       const payload = buildSkillsPayload(state.employeeId, state.email, state.name, [skill]);
       await submitSkillReport(payload);
       await loadPreviousEntries({ silent: true });
@@ -375,7 +463,9 @@ export default async function decorate(block) {
       } else {
         state.input = blankInput();
       }
-      state.message = isEdit ? `"${skillName}" updated successfully.` : `"${skillName}" added successfully.`;
+      state.message = (isEdit || alreadyExists)
+        ? `"${skillName}" updated successfully.`
+        : `"${skillName}" added successfully.`;
       state.messageType = 'success';
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -417,32 +507,51 @@ export default async function decorate(block) {
       ...skillList.map((n) => ({ value: n, label: n })),
       { value: 'other', label: 'Other…' },
     ];
-    const skillSel = buildSelect(skillOpts, input.skill);
-    skillSel.style.display = input.skill === 'other' ? 'none' : '';
 
     const otherInput = document.createElement('input');
     otherInput.type = 'text';
     otherInput.className = 'entry-form__input';
     otherInput.placeholder = 'Type your skill…';
     otherInput.value = input.skillOther;
-    otherInput.style.display = input.skill === 'other' ? '' : 'none';
     otherInput.addEventListener('input', (e) => { input.skillOther = e.target.value; });
 
-    skillSel.addEventListener('change', (e) => {
-      input.skill = e.target.value;
-      if (e.target.value !== 'other') {
+    const otherBack = document.createElement('button');
+    otherBack.type = 'button';
+    otherBack.className = 'entry-form__other-back';
+    otherBack.title = 'Back to list';
+    otherBack.setAttribute('aria-label', 'Back to skill list');
+    otherBack.innerHTML = '&#8592;';
+
+    const otherWrap = document.createElement('div');
+    otherWrap.className = 'entry-form__other-wrap';
+    otherWrap.style.display = input.skill === 'other' ? 'flex' : 'none';
+    otherWrap.append(otherBack, otherInput);
+
+    const skillSel = buildCustomSelect(skillOpts, input.skill, (value) => {
+      input.skill = value;
+      if (value !== 'other') {
         input.skillOther = '';
-        skillSel.style.display = '';
-        otherInput.style.display = 'none';
         otherInput.value = '';
+        otherWrap.style.display = 'none';
+        skillSel.style.display = '';
       } else {
         skillSel.style.display = 'none';
-        otherInput.style.display = '';
+        otherWrap.style.display = 'flex';
         otherInput.focus();
       }
     });
+    skillSel.style.display = input.skill === 'other' ? 'none' : '';
 
-    skillTd.append(skillSel, otherInput);
+    otherBack.addEventListener('click', () => {
+      input.skill = '';
+      input.skillOther = '';
+      skillSel.resetValue();
+      skillSel.style.display = '';
+      otherInput.value = '';
+      otherWrap.style.display = 'none';
+    });
+
+    skillTd.append(skillSel, otherWrap);
     tr.append(skillTd);
 
     // ── Experience ──

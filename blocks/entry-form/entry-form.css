@@ -10,7 +10,7 @@
 
 /* Cap content width and centre it within the fixed-position section */
 .section.entry-form-container > div {
-  max-width: 1024px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px 16px;
 }
@@ -53,6 +53,7 @@
 .entry-form .entry-form__heading {
   margin: 0;
   color: var(--entry-form-text);
+  font-family: var(--body-font-family);
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.1;
@@ -62,6 +63,7 @@
 .entry-form .entry-form__heading-sub {
   margin: 2px 0 0;
   color: var(--entry-form-text-muted);
+  font-family: var(--body-font-family);
   font-size: 1.6rem;
   font-weight: 500;
 }
@@ -193,6 +195,7 @@
 /* ── Multi-select (specialization) ── */
 .entry-form .entry-form__multi-select {
   display: block;
+  width: 100%;
 }
 
 .entry-form .entry-form__multi-trigger {
@@ -256,6 +259,24 @@
   flex-shrink: 0;
   accent-color: var(--entry-form-accent);
   cursor: pointer;
+}
+
+/* ── Single-select option items (skill dropdown) ── */
+.entry-form__single-option {
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.entry-form__single-option:hover {
+  background: #f8fbff;
+}
+
+.entry-form__single-option--selected {
+  color: var(--entry-form-accent);
+  font-weight: 600;
+  background: #edf5ff;
 }
 
 /* ── Specialization chips (data rows) ── */
@@ -414,6 +435,40 @@
 /* Column width is set via thead th:nth-child on table-layout: fixed */
 .entry-form .entry-form__spec-td {
   overflow: hidden;
+}
+
+/* ── Other skill wrapper (back button + text input) ── */
+.entry-form .entry-form__other-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.entry-form .entry-form__other-wrap .entry-form__input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Other skill back button ── */
+.entry-form .entry-form__other-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 42px;
+  margin-right: 4px;
+  border: none;
+  background: none;
+  color: var(--entry-form-accent);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.entry-form .entry-form__other-back:hover {
+  color: var(--entry-form-accent-strong);
 }
 
 /* Cert title input appears in its own cell */
