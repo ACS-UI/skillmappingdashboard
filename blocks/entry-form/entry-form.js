@@ -283,6 +283,7 @@ export default async function decorate(block) {
     // Index in `state.savedRows` being edited inline — Save POSTs immediately
     // and refreshes the previously-submitted list.
     editingSavedIndex: -1,
+    selectedSavedIndices: new Set(),
     // `input` backs the always-present "+ Add" row at the bottom of the form
     // table; `editInput` backs the inline edit row in the previously-submitted
     // list. Keeping them separate lets both input rows exist at the same time.
@@ -367,6 +368,7 @@ export default async function decorate(block) {
       // Reverse so the most recently added skill appears at the top (LIFO).
       state.savedRows = (data.skills || []).map(mapServerSkillToRow).reverse();
       state.savedSkillNames = state.savedRows.map((r) => r.skillName);
+      state.selectedSavedIndices = new Set();
       if (!silent) render();
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -385,6 +387,34 @@ export default async function decorate(block) {
       await deleteSkill(state.employeeId, s.skillName);
       await loadPreviousEntries({ silent: true });
       state.message = `"${s.skillName}" deleted.`;
+      state.messageType = 'success';
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Skill delete failed:', err);
+      state.message = err.message || 'Delete failed. Check the browser console for details.';
+      state.messageType = 'error';
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  async function deleteSelectedSavedRows() {
+    const indices = [...state.selectedSavedIndices].sort((a, b) => b - a);
+    if (!indices.length) return;
+    state.busy = true;
+    state.message = '';
+    state.messageType = '';
+    render();
+    try {
+      // eslint-disable-next-line no-restricted-syntax
+      for (const i of indices) {
+        const s = state.savedRows[i];
+        // eslint-disable-next-line no-await-in-loop
+        if (s) await deleteSkill(state.employeeId, s.skillName);
+      }
+      await loadPreviousEntries({ silent: true });
+      state.message = `${indices.length} skill${indices.length > 1 ? 's' : ''} deleted.`;
       state.messageType = 'success';
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -697,7 +727,11 @@ export default async function decorate(block) {
       // A saved row being edited is replaced inline by its own input row
       // (bound to state.editInput, independent of the bottom "+ Add" row).
       if (showActions && tableKind === 'saved' && state.editingSavedIndex === i) {
-        return renderInputRow(state.editInput, 'edit');
+        const inputTr = renderInputRow(state.editInput, 'edit');
+        const cbTd = document.createElement('td');
+        cbTd.className = 'entry-form__cb-cell';
+        inputTr.append(cbTd);
+        return inputTr;
       }
 
       const expLabel = `${s.months} month${s.months === 1 ? '' : 's'}`;
@@ -807,7 +841,22 @@ export default async function decorate(block) {
       if (showDelete) actionsWrap.append(delBtn);
       actionTd.append(actionsWrap);
 
-      if (showActions) {
+      if (tableKind === 'saved') {
+        const cbTd = document.createElement('td');
+        cbTd.className = 'entry-form__cb-cell';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'entry-form__row-cb';
+        cb.checked = state.selectedSavedIndices.has(i);
+        cb.setAttribute('aria-label', `Select ${s.skillName}`);
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.selectedSavedIndices.add(i);
+          else state.selectedSavedIndices.delete(i);
+          render();
+        });
+        cbTd.append(cb);
+        tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, cbTd);
+      } else if (showActions) {
         tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, actionTd);
       } else {
         tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd);
@@ -830,8 +879,28 @@ export default async function decorate(block) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     const headers = ['Skill', 'Experience in Months', 'Specialization', 'Platform', 'Certification', 'Title of Certificate'];
-    if (showActions) headers.push('');
+    if (showActions && tableKind !== 'saved') headers.push('');
     headers.forEach((label) => headerRow.append(createElement('th', '', label)));
+    if (tableKind === 'saved') {
+      const cbTh = document.createElement('th');
+      cbTh.className = 'entry-form__cb-col';
+      const selectAllCb = document.createElement('input');
+      selectAllCb.type = 'checkbox';
+      selectAllCb.className = 'entry-form__select-all-cb';
+      selectAllCb.setAttribute('aria-label', 'Select all skills');
+      const allSelected = rows.length > 0
+        && rows.every((_, idx) => state.selectedSavedIndices.has(idx));
+      const someSelected = rows.some((_, idx) => state.selectedSavedIndices.has(idx));
+      selectAllCb.checked = allSelected;
+      selectAllCb.indeterminate = someSelected && !allSelected;
+      selectAllCb.addEventListener('change', () => {
+        if (selectAllCb.checked) rows.forEach((_, idx) => state.selectedSavedIndices.add(idx));
+        else state.selectedSavedIndices = new Set();
+        render();
+      });
+      cbTh.append(selectAllCb);
+      headerRow.append(cbTh);
+    }
     thead.append(headerRow);
     table.append(thead);
 
@@ -855,7 +924,41 @@ export default async function decorate(block) {
   function renderPreviousEntries(wrapper) {
     if (!state.savedRows.length) return;
     const section = createElement('div', 'entry-form__previous');
-    section.append(createElement('h3', 'entry-form__previous-title', 'Previously submitted skills'));
+
+    const titleRow = createElement('div', 'entry-form__previous-header');
+    titleRow.append(createElement('h3', 'entry-form__previous-title', 'Previously submitted skills'));
+
+    const nSelected = state.selectedSavedIndices.size;
+    if (nSelected > 0) {
+      const bar = createElement('div', 'entry-form__selection-bar');
+      bar.append(createElement('span', 'entry-form__selection-count', `${nSelected} row${nSelected > 1 ? 's' : ''} selected`));
+
+      const editBtn = createElement('button', 'entry-form__selection-btn', 'Edit');
+      editBtn.type = 'button';
+      if (nSelected !== 1 || state.busy) editBtn.disabled = true;
+      editBtn.addEventListener('click', () => {
+        const idx = [...state.selectedSavedIndices][0];
+        state.selectedSavedIndices = new Set();
+        editSavedRow(idx);
+      });
+
+      const delBtn = createElement('button', 'entry-form__selection-btn entry-form__selection-btn--danger', 'Delete');
+      delBtn.type = 'button';
+      if (state.busy) delBtn.disabled = true;
+      delBtn.addEventListener('click', deleteSelectedSavedRows);
+
+      const clearBtn = createElement('button', 'entry-form__selection-btn entry-form__selection-btn--ghost', '✕ Clear');
+      clearBtn.type = 'button';
+      clearBtn.addEventListener('click', () => {
+        state.selectedSavedIndices = new Set();
+        render();
+      });
+
+      bar.append(editBtn, delBtn, clearBtn);
+      titleRow.append(bar);
+    }
+
+    section.append(titleRow);
     section.append(renderTable(state.savedRows, true, false, true, 'saved'));
     wrapper.append(section);
   }

@@ -141,7 +141,8 @@
   line-height: 1.3;
 }
 
-/* Proportional column widths â€” fixed layout, no horizontal overflow */
+/* Proportional column widths — fixed layout, no horizontal overflow */
+/* Form table (7 cols: skill + 5 data + action) */
 .entry-form .entry-form__skills-table thead th:nth-child(1) { width: 20%; }
 .entry-form .entry-form__skills-table thead th:nth-child(2) { width: 12%; }
 .entry-form .entry-form__skills-table thead th:nth-child(3) { width: 16%; }
@@ -153,6 +154,107 @@
 .entry-form .entry-form__skills-table thead th:last-child {
   width: 80px;
   text-align: center;
+}
+
+/* ── Checkbox column (saved-rows table) ── */
+.entry-form .entry-form__cb-col {
+  width: 40px;
+  text-align: center;
+  padding: 10px 6px;
+}
+
+.entry-form .entry-form__cb-cell {
+  text-align: center;
+  padding: 10px 6px;
+  vertical-align: middle;
+}
+
+.entry-form .entry-form__row-cb,
+.entry-form .entry-form__select-all-cb {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--entry-form-accent);
+}
+
+/* ── Previous entries header row ── */
+.entry-form .entry-form__previous-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.entry-form .entry-form__previous-header .entry-form__previous-title {
+  margin: 0;
+}
+
+/* ── Selection action bar ── */
+.entry-form .entry-form__selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  flex: 1;
+}
+
+.entry-form .entry-form__selection-count {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e40af;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.entry-form .entry-form__selection-btn {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+  border: 1.5px solid var(--entry-form-accent);
+  background: var(--entry-form-accent);
+  color: #fff;
+}
+
+.entry-form .entry-form__selection-btn:hover:not(:disabled) {
+  background: var(--entry-form-accent-strong);
+  border-color: var(--entry-form-accent-strong);
+}
+
+.entry-form .entry-form__selection-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.entry-form .entry-form__selection-btn--danger {
+  border-color: var(--entry-form-danger);
+  background: var(--entry-form-danger);
+}
+
+.entry-form .entry-form__selection-btn--danger:hover:not(:disabled) {
+  background: #9a3412;
+  border-color: #9a3412;
+}
+
+.entry-form .entry-form__selection-btn--ghost {
+  margin-left: auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--entry-form-text-muted);
+}
+
+.entry-form .entry-form__selection-btn--ghost:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--entry-form-text);
 }
 
 /* ── Data rows ── */
@@ -564,7 +666,7 @@
 }
 
 .entry-form .entry-form__previous-title {
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--entry-form-text-muted);
   font-size: 0.95rem;
   font-weight: 700;
