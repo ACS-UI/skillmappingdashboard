@@ -163,8 +163,8 @@
   color: var(--report-table-accent);
   cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease;
-  display:none;
 }
+
 
 .report-table .report-table__info-btn:hover {
   background: var(--report-table-accent);

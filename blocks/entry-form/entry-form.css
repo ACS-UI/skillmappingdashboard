@@ -432,6 +432,42 @@
   font-size: 0.82rem;
 }
 
+.entry-form .entry-form__spec-chip--more {
+  background: #e0e7ff;
+  color: #3730a3;
+  cursor: default;
+  position: relative;
+}
+
+.entry-form .entry-form__spec-chip--more[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  white-space: normal;
+  max-width: 220px;
+  line-height: 1.45;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms ease;
+}
+
+.entry-form .entry-form__spec-chip--more[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 .entry-form .entry-form__chips-overflow {
   display: inline-block;
   padding: 3px 10px;
@@ -522,37 +558,26 @@
 
 /* ── Certificate title tooltip ── */
 .entry-form .entry-form__title-td {
-  position: relative;
   overflow: visible;
   cursor: default;
 }
 
-.entry-form .entry-form__title-td[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  z-index: 200;
-  background: #1f2937;
-  color: #fff;
+.entry-form__cert-tooltip {
+  position: fixed;
+  z-index: 500;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #e2e8f0;
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 400;
   white-space: normal;
-  max-width: 280px;
-  min-width: 120px;
+  overflow-wrap: anywhere;
+  max-width: 260px;
   line-height: 1.45;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 160ms ease, visibility 160ms ease;
-}
-
-.entry-form .entry-form__title-td[data-tooltip]:hover::after {
-  opacity: 1;
-  visibility: visible;
 }
 
 .entry-form .entry-form__dash {

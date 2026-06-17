@@ -422,9 +422,24 @@ function buildChipsCell(items) {
 
   function positionPanel() {
     const rect = overflowBtn.getBoundingClientRect();
-    panel.style.top = `${rect.bottom + 4}px`;
-    panel.style.left = `${rect.left}px`;
+    panel.style.visibility = 'hidden';
+    panel.hidden = false;
+    const ph = panel.offsetHeight;
+    const pw = panel.offsetWidth;
+    panel.hidden = true;
+    panel.style.visibility = '';
+    let top = rect.bottom + 4;
+    if (top + ph > window.innerHeight - 8) top = rect.top - ph - 4;
+    if (top < 8) top = 8;
+    let { left } = rect;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    if (left < 8) left = 8;
+    panel.style.top = `${top}px`;
+    panel.style.left = `${left}px`;
   }
+
+  let onScroll;
+  let closeOnOutside;
 
   function closePanel() {
     panel.hidden = true;
@@ -433,12 +448,12 @@ function buildChipsCell(items) {
     window.removeEventListener('scroll', onScroll, true);
   }
 
-  const onScroll = (e) => {
+  onScroll = (e) => {
     if (panel === e.target || panel.contains(e.target)) return;
     closePanel();
   };
 
-  const closeOnOutside = (e) => {
+  closeOnOutside = (e) => {
     if (!panel.contains(e.target) && e.target !== overflowBtn) {
       closePanel();
     }
@@ -949,18 +964,6 @@ export default async function decorate(block) {
       const expTd = createElement('td', 'entry-form__exp-cell', expLabel);
       expTd.dataset.label = 'Experience';
 
-      const buildChipCell = (list) => {
-        const wrap = createElement('div', 'entry-form__spec-chips');
-        const MAX = 3;
-        list.slice(0, MAX).forEach((v) => wrap.append(createElement('span', 'entry-form__spec-chip', v)));
-        if (list.length > MAX) {
-          const more = createElement('span', 'entry-form__spec-chip entry-form__spec-chip--more', `+${list.length - MAX}`);
-          more.dataset.tooltip = list.slice(MAX).join(', ');
-          wrap.append(more);
-        }
-        return wrap;
-      };
-
       const specTd = document.createElement('td');
       specTd.dataset.label = 'Specialization';
       const slist = s.specializations || [];
@@ -986,7 +989,24 @@ export default async function decorate(block) {
         titleTd.append(strong);
         if (tableKind === 'saved' && s.certTitle) {
           titleTd.className = 'entry-form__title-td';
-          titleTd.dataset.tooltip = s.certTitle;
+          let tip = null;
+          strong.addEventListener('mouseenter', () => {
+            tip = createElement('div', 'entry-form__cert-tooltip', s.certTitle);
+            document.body.append(tip);
+            const r = strong.getBoundingClientRect();
+            const tw = tip.offsetWidth;
+            const th = tip.offsetHeight;
+            let top = r.top - th - 8;
+            let { left } = r;
+            if (top < 8) top = r.bottom + 8;
+            if (top + th > window.innerHeight - 8) top = window.innerHeight - th - 8;
+            if (top < 8) top = 8;
+            if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+            if (left < 8) left = 8;
+            tip.style.top = `${top}px`;
+            tip.style.left = `${left}px`;
+          });
+          strong.addEventListener('mouseleave', () => { if (tip) { tip.remove(); tip = null; } });
         }
       } else {
         titleTd.append(createElement('span', 'entry-form__dash', '—'));
