@@ -1,6 +1,7 @@
 import { getSkillReport } from '../../scripts/api.js';
 import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
 import { getDirectReports, normalizeLdap, getAllEmployeeRecords } from '../../scripts/employee-mapping.js';
+import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
 function readBlockConfig(block) {
   return [...block.children].reduce((config, row) => {
@@ -656,7 +657,7 @@ async function filterToDirectReports(employees, user) {
 export default async function decorate(block) {
   const config = readBlockConfig(block);
   block.textContent = '';
-  block.append(createElement('p', 'report-table__loading', 'Loading skill report…'));
+  showSpinner('Loading skill report…');
 
   let user = null;
   try {
@@ -667,6 +668,7 @@ export default async function decorate(block) {
   // unidentified user (no SSO record) is denied as well.
   const allowed = user ? user.isManager : isTestEnvironment();
   if (!allowed) {
+    hideSpinner();
     window.location.replace('/');
     return;
   }
@@ -678,7 +680,7 @@ export default async function decorate(block) {
     const employees = await filterToDirectReports(data.employees, user);
 
     if (employees.length === 0) {
-      block.textContent = '';
+      hideSpinner();
       block.append(createElement('p', 'report-table__empty', 'No direct reports have submitted skills yet.'));
       return;
     }
@@ -691,7 +693,8 @@ export default async function decorate(block) {
 
     renderTable(block, config, { ...data, employees }, skillRarity, distribution);
   } catch {
-    block.textContent = '';
     block.append(createElement('p', 'report-table__error', 'Failed to load skill report. Please try again.'));
+  } finally {
+    hideSpinner();
   }
 }

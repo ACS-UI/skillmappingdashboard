@@ -6,6 +6,7 @@ import {
   getEmployeeSkillReport,
 } from '../../scripts/api.js';
 import { getSessionUser } from '../../scripts/auth.js';
+import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
 function parseSpecializations(value) {
   if (Array.isArray(value)) return value;
@@ -444,6 +445,7 @@ export default async function decorate(block) {
     state.message = '';
     state.messageType = '';
     render();
+    showSpinner('Deleting skill…');
     try {
       await deleteSkill(state.employeeId, s.skillName);
       await loadPreviousEntries({ silent: true });
@@ -455,6 +457,7 @@ export default async function decorate(block) {
       state.message = err.message || 'Delete failed. Check the browser console for details.';
       state.messageType = 'error';
     } finally {
+      hideSpinner();
       state.busy = false;
       render();
     }
@@ -495,6 +498,7 @@ export default async function decorate(block) {
     state.message = '';
     state.messageType = '';
     render();
+    showSpinner(isEdit ? 'Updating skill…' : 'Saving skill…');
     try {
       const skillName = getInputSkillName(input);
       const months = Number(input.months);
@@ -540,6 +544,7 @@ export default async function decorate(block) {
         : `Submission failed${status}. Check the browser console for details.`;
       state.messageType = 'error';
     } finally {
+      hideSpinner();
       state.busy = false;
       render();
     }
