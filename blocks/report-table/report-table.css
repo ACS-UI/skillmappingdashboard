@@ -1,6 +1,7 @@
 /* Match entry-form top spacing */
 .section.report-table-container {
   padding-top: 8px;
+  overflow-x: clip; /* prevent wrapper box-shadow from extending past viewport */
 }
 
 /* Cap content width and centre it, consistent with entry-form */
