@@ -123,6 +123,7 @@
 .entry-form .entry-form__table-wrap {
   border: 1.5px solid var(--entry-form-border);
   border-radius: 10px;
+  overflow: hidden;
 }
 
 /* ── Skills table ── */
