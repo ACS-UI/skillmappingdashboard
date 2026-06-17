@@ -1,6 +1,7 @@
 import { getSkillReport } from '../../scripts/api.js';
 import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
 import { getDirectReports, normalizeLdap, getAllEmployeeRecords } from '../../scripts/employee-mapping.js';
+import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
 function readBlockConfig(block) {
   return [...block.children].reduce((config, row) => {
@@ -28,6 +29,19 @@ const RARITY_TIERS = [
   { id: 'super-niche', label: 'Super niche', minShare: 0.2 },
   { id: 'ultra-niche', label: 'Ultra niche', minShare: 0.1 },
 ];
+
+const LEVEL_DESCRIPTIONS = {
+  1: 'Basic understanding of frontend concepts, HTML, CSS, JavaScript, '
+    + 'and simple UI development with guidance.',
+  2: 'Able to independently build standard UI features, '
+    + 'responsive pages, and basic integrations.',
+  3: 'Strong frontend development skills with experience in complex features, '
+    + 'optimization, testing, and mentoring.',
+  4: 'Leads frontend architecture, solutioning, best practices, '
+    + 'and enterprise-level implementations.',
+  5: 'Organizational expert driving frontend strategy, innovation, standards, '
+    + 'and large-scale technical transformation.',
+};
 
 function getRarityTier(share) {
   // The last tier has minShare 0, so a match is always found.
@@ -168,8 +182,6 @@ function downloadCsv(filename, content) {
 function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
   const PAGE_SIZE = 10;
   let filtered = employees;
-
-  body.append(createElement('h3', 'report-table__subheading', 'Skills by rarity tier'));
 
   const searchWrap = createElement('div', 'report-table__search-wrap');
   const searchInput = createElement('input', 'report-table__search');
@@ -358,8 +370,6 @@ function renderDistributionTable(body, config, distribution) {
   const levels = (config.levels || 'P20,P30,P40,P50').split(',').map((s) => s.trim());
   const locationNames = (config.locations || 'Noida,Bangalore').split(',').map((s) => s.trim());
 
-  body.append(createElement('h3', 'report-table__subheading', 'Skill Distribution'));
-
   // ── Location filter buttons ──
   const filterBar = createElement('div', 'report-table__location-filter');
   const allBtn = createElement('button', 'report-table__location-btn report-table__location-btn--active', 'All');
@@ -454,11 +464,32 @@ function renderTable(block, config, data, skillRarity, distribution) {
   block.textContent = '';
   const wrapper = createElement('div', 'report-table__wrapper');
 
+  // ── Header: title (left) + toggle bar (right) ──
   const headerLeft = createElement('div', 'report-table__header-left');
   headerLeft.append(
     createElement('span', 'report-table__heading-accent'),
     createElement('h2', 'report-table__heading', config.heading || 'Manager Skill Report'),
   );
+
+  const tabs = [
+    { id: 'tier', label: 'Skill rarity' },
+    { id: 'distribution', label: 'Skill Distribution' },
+  ];
+
+  const toggleBar = createElement('div', 'report-table__toggle-bar');
+  tabs.forEach(({ id, label }, idx) => {
+    const btn = createElement('button', `report-table__toggle-btn${idx === 0 ? ' report-table__toggle-btn--active' : ''}`, label);
+    btn.type = 'button';
+    btn.dataset.panel = id;
+    toggleBar.append(btn);
+  });
+
+  const header = createElement('div', 'report-table__header');
+  header.append(headerLeft, toggleBar);
+  wrapper.append(header);
+
+  // ── Toolbar: subheading (left) + legend + export (right) ──
+  const subheading = createElement('h3', 'report-table__subheading', tabs[0].label);
 
   const legend = createElement('div', 'report-table__legend');
   proficiencyLevels.forEach(({ level, label }) => {
@@ -473,33 +504,105 @@ function renderTable(block, config, data, skillRarity, distribution) {
     legend.append(item);
   });
 
+  const infoBtn = createElement('button', 'report-table__info-btn');
+  infoBtn.type = 'button';
+  infoBtn.setAttribute('aria-label', 'Proficiency level descriptions');
+  const infoSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  infoSvg.setAttribute('width', '14');
+  infoSvg.setAttribute('height', '14');
+  infoSvg.setAttribute('viewBox', '0 0 24 24');
+  infoSvg.setAttribute('fill', 'none');
+  infoSvg.setAttribute('stroke', 'currentColor');
+  infoSvg.setAttribute('stroke-width', '2.5');
+  infoSvg.setAttribute('stroke-linecap', 'round');
+  infoSvg.setAttribute('stroke-linejoin', 'round');
+  infoSvg.setAttribute('aria-hidden', 'true');
+  const infoCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  infoCircle.setAttribute('cx', '12');
+  infoCircle.setAttribute('cy', '12');
+  infoCircle.setAttribute('r', '10');
+  const infoPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  infoPath1.setAttribute('d', 'M12 16v-4');
+  const infoPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  infoPath2.setAttribute('d', 'M12 8h.01');
+  infoSvg.append(infoCircle, infoPath1, infoPath2);
+  infoBtn.append(infoSvg);
+
+  document.querySelectorAll('.report-table__info-panel').forEach((p) => p.remove());
+  const infoPanel = document.createElement('div');
+  infoPanel.className = 'report-table report-table__info-panel';
+  infoPanel.style.display = 'none';
+  const infoPanelTitle = createElement(
+    'p',
+    'report-table__info-panel-title',
+    'Proficiency Levels',
+  );
+  const infoRows = createElement('div', 'report-table__info-panel-rows');
+  proficiencyLevels.forEach(({ level, label }) => {
+    const row = createElement('div', 'report-table__info-panel-row');
+    const badge = createElement(
+      'span',
+      `report-table__badge report-table__badge--l${level}`,
+      label,
+    );
+    const desc = createElement(
+      'p',
+      'report-table__info-panel-desc',
+      LEVEL_DESCRIPTIONS[level] || '',
+    );
+    row.append(badge, desc);
+    infoRows.append(row);
+  });
+  infoPanel.append(infoPanelTitle, infoRows);
+  document.body.append(infoPanel);
+
+  function positionInfoPanel() {
+    const rect = infoBtn.getBoundingClientRect();
+    const panelWidth = 440;
+    const panelHeight = infoPanel.offsetHeight || 320;
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const top = spaceBelow >= panelHeight
+      ? rect.bottom + 8
+      : Math.max(8, rect.top - panelHeight - 8);
+    infoPanel.style.top = `${top}px`;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - panelWidth - 8));
+    infoPanel.style.left = `${left}px`;
+  }
+
+  function closeInfoOnOutside(e) {
+    if (!infoPanel.contains(e.target) && e.target !== infoBtn) {
+      infoPanel.style.display = 'none';
+      document.removeEventListener('click', closeInfoOnOutside);
+    }
+  }
+
+  infoBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (infoPanel.style.display === 'none') {
+      positionInfoPanel();
+      infoPanel.style.display = 'block';
+      document.addEventListener('click', closeInfoOnOutside);
+    } else {
+      infoPanel.style.display = 'none';
+      document.removeEventListener('click', closeInfoOnOutside);
+    }
+  });
+
   const exportBtn = createElement('button', 'report-table__button', 'Export CSV');
   exportBtn.type = 'button';
-  exportBtn.addEventListener('click', () => downloadCsv('skill-report.csv', tierTableToCsv(employees, proficiencyLevels, skillRarity)));
+  exportBtn.addEventListener('click', () => downloadCsv(
+    'skill-report.csv',
+    tierTableToCsv(employees, proficiencyLevels, skillRarity),
+  ));
 
-  const headerRight = createElement('div', 'report-table__header-right');
-  headerRight.append(legend, exportBtn);
+  const toolbarRight = createElement('div', 'report-table__toolbar-right');
+  toolbarRight.append(legend, infoBtn, exportBtn);
 
-  const header = createElement('div', 'report-table__header');
-  header.append(headerLeft, headerRight);
-
-  wrapper.append(header);
+  const toolbar = createElement('div', 'report-table__toolbar');
+  toolbar.append(subheading, toolbarRight);
 
   const body = createElement('div', 'report-table__body');
-
-  // ── Toggle bar ──
-  const toggleBar = createElement('div', 'report-table__toggle-bar');
-  const tabs = [
-    { id: 'tier', label: 'Skills by rarity tier' },
-    { id: 'distribution', label: 'Skill Distribution' },
-  ];
-  tabs.forEach(({ id, label }, idx) => {
-    const btn = createElement('button', `report-table__toggle-btn${idx === 0 ? ' report-table__toggle-btn--active' : ''}`, label);
-    btn.type = 'button';
-    btn.dataset.panel = id;
-    toggleBar.append(btn);
-  });
-  body.append(toggleBar);
+  body.append(toolbar);
 
   // ── Panels ──
   const tierPanel = createElement('div', 'report-table__panel report-table__panel--active');
@@ -522,6 +625,15 @@ function renderTable(block, config, data, skillRarity, distribution) {
     body.querySelectorAll('.report-table__panel').forEach((panel) => {
       panel.classList.toggle('report-table__panel--active', panel.dataset.panel === target);
     });
+    const activeTab = tabs.find((t) => t.id === target);
+    if (activeTab) subheading.textContent = activeTab.label;
+    legend.style.display = target === 'tier' ? '' : 'none';
+    infoBtn.style.display = target === 'tier' ? '' : 'none';
+    exportBtn.style.display = target === 'tier' ? '' : 'none';
+    if (target !== 'tier') {
+      infoPanel.style.display = 'none';
+      document.removeEventListener('click', closeInfoOnOutside);
+    }
   });
 
   wrapper.append(body);
@@ -545,7 +657,7 @@ async function filterToDirectReports(employees, user) {
 export default async function decorate(block) {
   const config = readBlockConfig(block);
   block.textContent = '';
-  block.append(createElement('p', 'report-table__loading', 'Loading skill report…'));
+  showSpinner('Loading skill report…');
 
   let user = null;
   try {
@@ -556,6 +668,7 @@ export default async function decorate(block) {
   // unidentified user (no SSO record) is denied as well.
   const allowed = user ? user.isManager : isTestEnvironment();
   if (!allowed) {
+    hideSpinner();
     window.location.replace('/');
     return;
   }
@@ -567,7 +680,7 @@ export default async function decorate(block) {
     const employees = await filterToDirectReports(data.employees, user);
 
     if (employees.length === 0) {
-      block.textContent = '';
+      hideSpinner();
       block.append(createElement('p', 'report-table__empty', 'No direct reports have submitted skills yet.'));
       return;
     }
@@ -580,7 +693,8 @@ export default async function decorate(block) {
 
     renderTable(block, config, { ...data, employees }, skillRarity, distribution);
   } catch {
-    block.textContent = '';
     block.append(createElement('p', 'report-table__error', 'Failed to load skill report. Please try again.'));
+  } finally {
+    hideSpinner();
   }
 }
