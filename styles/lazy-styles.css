@@ -5,29 +5,23 @@
   position: fixed;
   inset: 0;
   z-index: 9000;
-  background: rgb(0 0 0 / 45%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.app-spinner-card {
+  background: rgb(0 0 0 / 50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 20px;
-  padding: 36px 48px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 16px 48px rgb(15 23 42 / 22%);
-  min-width: 180px;
+}
+
+.app-spinner-card {
+  display: contents;
 }
 
 .app-spinner-ring {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e9f0;
-  border-top-color: #1473e6;
+  width: 56px;
+  height: 56px;
+  border: 5px solid rgb(255 255 255 / 25%);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: app-spin 0.75s linear infinite;
 }
@@ -42,7 +36,8 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #131313;
+  color: #fff;
+  letter-spacing: 0.01em;
 }
 
 /* ── Manager view toggle (entry form ⇄ manager report) ── */
