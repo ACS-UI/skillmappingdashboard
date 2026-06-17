@@ -119,7 +119,10 @@ function buildCustomSelect(options, currentValue, onChange) {
   panel.append(searchWrap);
 
   const listView = document.createElement('div');
-  panel.append(listView);
+  const listScroll = document.createElement('div');
+  listScroll.className = 'entry-form__single-list';
+  listScroll.append(listView);
+  panel.append(listScroll);
 
   const addRow = document.createElement('div');
   addRow.className = 'entry-form__single-add';
@@ -467,9 +470,11 @@ function buildChipsCell(items) {
 
 export default async function decorate(block) {
   const config = readBlockConfig(block);
+  showSpinner('Loading…');
   const [user, skillList, [specializationList, platformList]] = await Promise.all([
     getSessionUser(), fetchSkillList(), fetchSpecializationsAndPlatforms(),
   ]);
+  hideSpinner();
   const blankInput = () => ({
     skill: '', skillOther: '', months: 0, specializations: [], platforms: [], cert: '', certTitle: '', certImageUrl: '',
   });
@@ -580,6 +585,58 @@ export default async function decorate(block) {
       // eslint-disable-next-line no-console
       console.error('Could not load previous entries:', err);
     }
+  }
+
+  function showConfirmDialog({ title, body, confirmLabel = 'Delete' }) {
+    return new Promise((resolve) => {
+      const overlay = createElement('div', 'entry-form__dialog-overlay');
+
+      const dialog = document.createElement('div');
+      dialog.className = 'entry-form__dialog';
+      dialog.setAttribute('role', 'alertdialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-labelledby', 'ef-dlg-title');
+      dialog.setAttribute('aria-describedby', 'ef-dlg-body');
+
+      const iconWrap = createElement('div', 'entry-form__dialog-icon');
+      const warnSvg = buildIconSvg(
+        ['M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', 'M12 9v4', 'M12 17h.01'],
+        28,
+      );
+      iconWrap.append(warnSvg);
+
+      const titleEl = createElement('h2', 'entry-form__dialog-title', title);
+      titleEl.id = 'ef-dlg-title';
+
+      const bodyEl = createElement('p', 'entry-form__dialog-body', body);
+      bodyEl.id = 'ef-dlg-body';
+
+      const btnRow = createElement('div', 'entry-form__dialog-btns');
+      const cancelBtn = createElement('button', 'entry-form__dialog-btn entry-form__dialog-btn--secondary', 'Cancel');
+      cancelBtn.type = 'button';
+      const confirmBtn = createElement('button', 'entry-form__dialog-btn entry-form__dialog-btn--danger', confirmLabel);
+      confirmBtn.type = 'button';
+
+      let onKey;
+      const close = (confirmed) => {
+        document.removeEventListener('keydown', onKey);
+        overlay.remove();
+        resolve(confirmed);
+      };
+
+      onKey = (e) => { if (e.key === 'Escape') close(false); };
+      document.addEventListener('keydown', onKey);
+
+      cancelBtn.addEventListener('click', () => close(false));
+      confirmBtn.addEventListener('click', () => close(true));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+
+      btnRow.append(cancelBtn, confirmBtn);
+      dialog.append(iconWrap, titleEl, bodyEl, btnRow);
+      overlay.append(dialog);
+      document.body.append(overlay);
+      cancelBtn.focus();
+    });
   }
 
   async function deleteSavedRow(i) {
@@ -874,7 +931,10 @@ export default async function decorate(block) {
       // A saved row being edited is replaced inline by its own input row
       // (bound to state.editInput, independent of the bottom "+ Add" row).
       if (showActions && tableKind === 'saved' && state.editingSavedIndex === i) {
-        return renderInputRow(state.editInput, 'edit');
+        const inlineEditRow = renderInputRow(state.editInput, 'edit');
+        const blankTd = document.createElement('td');
+        inlineEditRow.insertBefore(blankTd, inlineEditRow.firstChild);
+        return inlineEditRow;
       }
 
       const expLabel = String(s.months);
@@ -888,6 +948,18 @@ export default async function decorate(block) {
 
       const expTd = createElement('td', 'entry-form__exp-cell', expLabel);
       expTd.dataset.label = 'Experience';
+
+      const buildChipCell = (list) => {
+        const wrap = createElement('div', 'entry-form__spec-chips');
+        const MAX = 3;
+        list.slice(0, MAX).forEach((v) => wrap.append(createElement('span', 'entry-form__spec-chip', v)));
+        if (list.length > MAX) {
+          const more = createElement('span', 'entry-form__spec-chip entry-form__spec-chip--more', `+${list.length - MAX}`);
+          more.dataset.tooltip = list.slice(MAX).join(', ');
+          wrap.append(more);
+        }
+        return wrap;
+      };
 
       const specTd = document.createElement('td');
       specTd.dataset.label = 'Specialization';
@@ -908,9 +980,14 @@ export default async function decorate(block) {
       ));
 
       const titleTd = document.createElement('td');
-      titleTd.dataset.label = 'Certificate';
+      titleTd.dataset.label = 'Certificate Title';
       if (s.cert === 'yes') {
-        titleTd.append(createElement('strong', 'entry-form__cert-title', s.certTitle));
+        const strong = createElement('strong', 'entry-form__cert-title', s.certTitle);
+        titleTd.append(strong);
+        if (tableKind === 'saved' && s.certTitle) {
+          titleTd.className = 'entry-form__title-td';
+          titleTd.dataset.tooltip = s.certTitle;
+        }
       } else {
         titleTd.append(createElement('span', 'entry-form__dash', '—'));
       }
@@ -973,7 +1050,21 @@ export default async function decorate(block) {
       actionTd.append(actionsWrap);
 
       if (tableKind === 'saved') {
-        tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, actionTd);
+        const cbTd = document.createElement('td');
+        cbTd.className = 'entry-form__cb-cell';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'entry-form__row-cb';
+        cb.checked = state.selectedSavedIndices.has(i);
+        cb.setAttribute('aria-label', `Select ${s.skillName}`);
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.selectedSavedIndices.add(i);
+          else state.selectedSavedIndices.delete(i);
+          render();
+        });
+        cbTd.append(cb);
+        if (state.selectedSavedIndices.has(i)) tr.classList.add('entry-form__data-row--selected');
+        tr.append(cbTd, skillTd, expTd, specTd, platformTd, certTd, titleTd);
       } else if (showActions) {
         tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, actionTd);
       } else {
@@ -992,12 +1083,33 @@ export default async function decorate(block) {
   ) {
     const tableWrap = createElement('div', 'entry-form__table-wrap');
     const table = document.createElement('table');
-    table.className = 'entry-form__skills-table';
+    table.className = `entry-form__skills-table${tableKind === 'saved' ? ' entry-form__skills-table--saved' : ''}`;
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
+
+    if (showActions && tableKind === 'saved') {
+      const cbTh = document.createElement('th');
+      cbTh.className = 'entry-form__cb-col';
+      const selectAll = document.createElement('input');
+      selectAll.type = 'checkbox';
+      selectAll.className = 'entry-form__row-cb entry-form__select-all-cb';
+      const total = rows.length;
+      const numSelected = rows.filter((_, i) => state.selectedSavedIndices.has(i)).length;
+      selectAll.checked = total > 0 && numSelected === total;
+      selectAll.indeterminate = numSelected > 0 && numSelected < total;
+      selectAll.setAttribute('aria-label', 'Select all skills');
+      selectAll.addEventListener('change', () => {
+        if (selectAll.checked) rows.forEach((_, i) => state.selectedSavedIndices.add(i));
+        else state.selectedSavedIndices.clear();
+        render();
+      });
+      cbTh.append(selectAll);
+      headerRow.append(cbTh);
+    }
+
     const headers = ['Skill', 'Experience in Months', 'Specialization', 'Platform', 'Certification', 'Title of Certificate'];
-    if (showActions) headers.push('');
+    if (showActions && tableKind !== 'saved') headers.push('');
     headers.forEach((label) => headerRow.append(createElement('th', '', label)));
     thead.append(headerRow);
     table.append(thead);
@@ -1019,6 +1131,42 @@ export default async function decorate(block) {
     return tableWrap;
   }
 
+  async function deleteSelectedSavedRows() {
+    const skillNames = [...state.selectedSavedIndices]
+      .map((idx) => state.savedRows[idx]?.skillName)
+      .filter(Boolean);
+    if (!skillNames.length) return;
+    const label = skillNames.length === 1 ? `"${skillNames[0]}"` : `${skillNames.length} skills`;
+
+    const confirmed = await showConfirmDialog({
+      title: skillNames.length === 1 ? 'Delete skill?' : 'Delete skills?',
+      body: `Are you sure you want to delete ${label}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
+    state.selectedSavedIndices.clear();
+    state.busy = true;
+    state.message = '';
+    state.messageType = '';
+    render();
+    showSpinner(`Deleting ${label}…`);
+    try {
+      await Promise.all(skillNames.map((name) => deleteSkill(state.employeeId, name)));
+      await loadPreviousEntries({ silent: true });
+      state.message = `${label} deleted.`;
+      state.messageType = 'success';
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Skill delete failed:', err);
+      state.message = err.message || 'Delete failed. Check the browser console for details.';
+      state.messageType = 'error';
+    } finally {
+      hideSpinner();
+      state.busy = false;
+      render();
+    }
+  }
+
   function renderPreviousEntries(wrapper) {
     if (!state.savedRows.length) return;
     const section = createElement('div', 'entry-form__previous');
@@ -1026,6 +1174,46 @@ export default async function decorate(block) {
     const titleRow = createElement('div', 'entry-form__previous-header');
     titleRow.append(createElement('h3', 'entry-form__previous-title', 'Previously submitted skills'));
     section.append(titleRow);
+
+    const selCount = state.selectedSavedIndices.size;
+    if (selCount > 0) {
+      const bar = createElement('div', 'entry-form__selection-bar');
+      const countLabel = createElement(
+        'span',
+        'entry-form__selection-count',
+        `${selCount} skill${selCount > 1 ? 's' : ''} selected`,
+      );
+      bar.append(countLabel);
+
+      if (selCount === 1) {
+        const editBtn = createElement('button', 'entry-form__selection-btn', 'Edit');
+        editBtn.type = 'button';
+        editBtn.prepend(buildIconSvg(['M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z']));
+        editBtn.addEventListener('click', () => {
+          const idx = [...state.selectedSavedIndices][0];
+          state.selectedSavedIndices.clear();
+          editSavedRow(idx);
+        });
+        bar.append(editBtn);
+      }
+
+      const delLabel = selCount === 1 ? 'Delete' : `Delete ${selCount}`;
+      const delBtn = createElement('button', 'entry-form__selection-btn entry-form__selection-btn--danger', delLabel);
+      delBtn.type = 'button';
+      delBtn.prepend(buildIconSvg(['M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2']));
+      delBtn.addEventListener('click', () => deleteSelectedSavedRows());
+      bar.append(delBtn);
+
+      const clearBtn = createElement('button', 'entry-form__selection-btn entry-form__selection-btn--ghost', 'Clear');
+      clearBtn.type = 'button';
+      clearBtn.addEventListener('click', () => {
+        state.selectedSavedIndices.clear();
+        render();
+      });
+      bar.append(clearBtn);
+      section.append(bar);
+    }
+
     section.append(renderTable(state.savedRows, true, false, true, 'saved'));
     wrapper.append(section);
   }
