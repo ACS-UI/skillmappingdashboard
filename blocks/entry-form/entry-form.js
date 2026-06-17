@@ -860,7 +860,10 @@ export default async function decorate(block) {
       // A saved row being edited is replaced inline by its own input row
       // (bound to state.editInput, independent of the bottom "+ Add" row).
       if (showActions && tableKind === 'saved' && state.editingSavedIndex === i) {
-        return renderInputRow(state.editInput, 'edit');
+        const inlineEditRow = renderInputRow(state.editInput, 'edit');
+        const blankTd = document.createElement('td');
+        inlineEditRow.insertBefore(blankTd, inlineEditRow.firstChild);
+        return inlineEditRow;
       }
 
       const expLabel = String(s.months);
@@ -875,27 +878,27 @@ export default async function decorate(block) {
       const expTd = createElement('td', 'entry-form__exp-cell', expLabel);
       expTd.dataset.label = 'Experience';
 
+      const buildChipCell = (list) => {
+        const wrap = createElement('div', 'entry-form__spec-chips');
+        const MAX = 3;
+        list.slice(0, MAX).forEach((v) => wrap.append(createElement('span', 'entry-form__spec-chip', v)));
+        if (list.length > MAX) {
+          const more = createElement('span', 'entry-form__spec-chip entry-form__spec-chip--more', `+${list.length - MAX}`);
+          more.dataset.tooltip = list.slice(MAX).join(', ');
+          wrap.append(more);
+        }
+        return wrap;
+      };
+
       const specTd = document.createElement('td');
       specTd.dataset.label = 'Specialization';
       const slist = s.specializations || [];
-      if (slist.length) {
-        const chipsWrap = createElement('div', 'entry-form__spec-chips');
-        slist.forEach((sp) => chipsWrap.append(createElement('span', 'entry-form__spec-chip', sp)));
-        specTd.append(chipsWrap);
-      } else {
-        specTd.append(createElement('span', 'entry-form__dash', '—'));
-      }
+      specTd.append(slist.length ? buildChipCell(slist) : createElement('span', 'entry-form__dash', '—'));
 
       const platformTd = document.createElement('td');
       platformTd.dataset.label = 'Platform';
       const plist = s.platforms || [];
-      if (plist.length) {
-        const chipsWrap = createElement('div', 'entry-form__spec-chips');
-        plist.forEach((p) => chipsWrap.append(createElement('span', 'entry-form__spec-chip', p)));
-        platformTd.append(chipsWrap);
-      } else {
-        platformTd.append(createElement('span', 'entry-form__dash', '—'));
-      }
+      platformTd.append(plist.length ? buildChipCell(plist) : createElement('span', 'entry-form__dash', '—'));
 
       const certTd = document.createElement('td');
       certTd.dataset.label = 'Certification';
@@ -906,9 +909,14 @@ export default async function decorate(block) {
       ));
 
       const titleTd = document.createElement('td');
-      titleTd.dataset.label = 'Certificate';
+      titleTd.dataset.label = 'Certificate Title';
       if (s.cert === 'yes') {
-        titleTd.append(createElement('strong', 'entry-form__cert-title', s.certTitle));
+        const strong = createElement('strong', 'entry-form__cert-title', s.certTitle);
+        titleTd.append(strong);
+        if (tableKind === 'saved' && s.certTitle) {
+          titleTd.className = 'entry-form__title-td';
+          titleTd.dataset.tooltip = s.certTitle;
+        }
       } else {
         titleTd.append(createElement('span', 'entry-form__dash', '—'));
       }
@@ -985,7 +993,7 @@ export default async function decorate(block) {
         });
         cbTd.append(cb);
         if (state.selectedSavedIndices.has(i)) tr.classList.add('entry-form__data-row--selected');
-        tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, cbTd);
+        tr.append(cbTd, skillTd, expTd, specTd, platformTd, certTd, titleTd);
       } else if (showActions) {
         tr.append(skillTd, expTd, specTd, platformTd, certTd, titleTd, actionTd);
       } else {
@@ -1004,13 +1012,11 @@ export default async function decorate(block) {
   ) {
     const tableWrap = createElement('div', 'entry-form__table-wrap');
     const table = document.createElement('table');
-    table.className = 'entry-form__skills-table';
+    table.className = `entry-form__skills-table${tableKind === 'saved' ? ' entry-form__skills-table--saved' : ''}`;
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    const headers = ['Skill', 'Experience in Months', 'Specialization', 'Platform', 'Certification', 'Title of Certificate'];
-    if (showActions && tableKind !== 'saved') headers.push('');
-    headers.forEach((label) => headerRow.append(createElement('th', '', label)));
+
     if (showActions && tableKind === 'saved') {
       const cbTh = document.createElement('th');
       cbTh.className = 'entry-form__cb-col';
@@ -1030,6 +1036,10 @@ export default async function decorate(block) {
       cbTh.append(selectAll);
       headerRow.append(cbTh);
     }
+
+    const headers = ['Skill', 'Experience in Months', 'Specialization', 'Platform', 'Certification', 'Title of Certificate'];
+    if (showActions && tableKind !== 'saved') headers.push('');
+    headers.forEach((label) => headerRow.append(createElement('th', '', label)));
     thead.append(headerRow);
     table.append(thead);
 

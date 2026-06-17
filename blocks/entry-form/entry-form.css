@@ -121,8 +121,6 @@
 
 /* ── Table wrapper ── */
 .entry-form .entry-form__table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   border: 1.5px solid var(--entry-form-border);
   border-radius: 10px;
 }
@@ -161,6 +159,15 @@
 .entry-form .entry-form__skills-table thead th:nth-child(6) { width: 19%; }
 .entry-form .entry-form__skills-table thead th:nth-child(7) { width: 9%; }
 
+/* Saved table: CB col is first, no action col at end */
+.entry-form .entry-form__skills-table--saved thead th:nth-child(1) { width: 32px; }
+.entry-form .entry-form__skills-table--saved thead th:nth-child(2) { width: 13%; }
+.entry-form .entry-form__skills-table--saved thead th:nth-child(3) { width: 10%; }
+.entry-form .entry-form__skills-table--saved thead th:nth-child(4) { width: 15%; }
+.entry-form .entry-form__skills-table--saved thead th:nth-child(5) { width: 20%; }
+.entry-form .entry-form__skills-table--saved thead th:nth-child(6) { width: 8%; }
+.entry-form .entry-form__skills-table--saved thead th:last-child { width: auto; }
+
 .entry-form .entry-form__skills-table thead th:last-child {
   width: 80px;
   text-align: center;
@@ -168,14 +175,14 @@
 
 /* ── Checkbox column (saved-rows table) ── */
 .entry-form .entry-form__cb-col {
-  width: 40px;
+  width: 32px;
   text-align: center;
-  padding: 10px 6px;
+  padding: 6px 4px;
 }
 
 .entry-form .entry-form__cb-cell {
   text-align: center;
-  padding: 10px 6px;
+  padding: 4px;
   vertical-align: middle;
 }
 
@@ -303,7 +310,7 @@
 }
 
 .entry-form .entry-form__data-row td {
-  padding: 10px;
+  padding: 6px 10px;
   font-size: 0.88rem;
   color: var(--entry-form-text);
   vertical-align: middle;
@@ -425,6 +432,41 @@
   font-size: 0.82rem;
 }
 
+.entry-form .entry-form__spec-chip--more {
+  background: #e0e7ff;
+  color: #3730a3;
+  cursor: default;
+  position: relative;
+}
+
+.entry-form .entry-form__spec-chip--more[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: #1f2937;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  white-space: normal;
+  max-width: 220px;
+  line-height: 1.45;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms ease;
+}
+
+.entry-form .entry-form__spec-chip--more[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 .entry-form .entry-form__cert-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -445,10 +487,47 @@
 }
 
 .entry-form .entry-form__cert-title {
-  font-size: 0.88rem;
   display: block;
-  overflow-x: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.88rem;
+  max-width: 100%;
+}
+
+/* ── Certificate title tooltip ── */
+.entry-form .entry-form__title-td {
+  position: relative;
+  overflow: visible;
+  cursor: default;
+}
+
+.entry-form .entry-form__title-td[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 200;
+  background: #1f2937;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  white-space: normal;
+  max-width: 280px;
+  min-width: 120px;
+  line-height: 1.45;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms ease;
+}
+
+.entry-form .entry-form__title-td[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .entry-form .entry-form__dash {
@@ -515,6 +594,13 @@
 .entry-form .entry-form__skills-table .entry-form__input-row--editing td {
   background: #fffbeb;
   border-top-color: #fbbf24;
+}
+
+/* Tighter horizontal padding for checkbox + skill columns in saved table */
+.entry-form .entry-form__skills-table--saved .entry-form__data-row td:nth-child(1),
+.entry-form .entry-form__skills-table--saved .entry-form__data-row td:nth-child(2) {
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .entry-form .entry-form__skills-table .entry-form__input-row td:first-child {
@@ -888,7 +974,7 @@
   }
 
   .entry-form .entry-form__data-row td {
-    padding: 12px 14px;
+    padding: 7px 14px;
   }
 
   .entry-form .entry-form__icon-btn {
@@ -923,7 +1009,7 @@
   }
 
   .entry-form .entry-form__data-row td {
-    padding: 13px 16px;
+    padding: 8px 16px;
   }
 }
 
