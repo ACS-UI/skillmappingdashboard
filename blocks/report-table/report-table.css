@@ -43,7 +43,6 @@
   gap: 12px;
   padding: 12px 16px 10px;
   background: linear-gradient(135deg, #f0f6ff 0%, #fafcff 100%);
-  border-bottom: 1px solid var(--report-table-border);
 }
 
 .report-table .report-table__header-left {
@@ -110,23 +109,6 @@
   padding: 16px;
 }
 
-/* ── Toolbar ── */
-.report-table .report-table__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--report-table-border);
-}
-
-.report-table .report-table__toolbar-right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
 
 .report-table .report-table__legend {
   display: flex;
@@ -181,6 +163,7 @@
   color: var(--report-table-accent);
   cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease;
+  display:none;
 }
 
 .report-table .report-table__info-btn:hover {
@@ -283,39 +266,46 @@
   font-size: 0.9rem;
 }
 
-/* ── Toggle bar ── */
-.report-table .report-table__toggle-bar {
+/* ── Tab bar ── */
+.report-table .report-table__tab-bar {
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--report-table-grid);
-  border-radius: 999px;
-  margin-left: auto;
-  width: fit-content;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  background: var(--report-table-surface-alt);
+  border-bottom: 2px solid var(--report-table-border);
 }
 
-.report-table .report-table__toggle-btn {
-  padding: 6px 18px;
+.report-table .report-table__tab-bar .report-table__toolbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.report-table .report-table__tab {
+  padding: 12px 20px;
   border: none;
-  border-radius: 999px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
   background: transparent;
   color: var(--report-table-text-muted);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease;
+  transition: color 160ms ease, border-color 160ms ease;
   white-space: nowrap;
 }
 
-.report-table .report-table__toggle-btn:hover {
+.report-table .report-table__tab:hover {
   color: var(--report-table-text);
 }
 
-.report-table .report-table__toggle-btn--active {
-  background: #fff;
+.report-table .report-table__tab--active {
   color: var(--report-table-accent);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 10%);
+  border-bottom-color: var(--report-table-accent);
 }
 
 /* ── Panels ── */
@@ -381,19 +371,24 @@
 
 .report-table .report-table__table th,
 .report-table .report-table__table td {
-  padding: 8px 10px;
   border-bottom: 1px solid var(--report-table-grid);
   text-align: left;
   vertical-align: middle;
 }
 
 .report-table .report-table__table th {
+  padding: 3px 10px;
   background: var(--report-table-surface-alt);
   color: var(--report-table-text);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.report-table .report-table__table td {
+  padding: 5px 10px;
+  font-size: 0.8rem;
 }
 
 /* Centre skill columns (names + badges) so each lines up under its tier banner.
@@ -419,7 +414,6 @@
      (its column cells continue the frame below). */
   border-left: 2px solid var(--tier-accent);
   border-right: 2px solid var(--tier-accent);
-  font-size: 0.72rem;
   text-transform: none;
 }
 
@@ -486,20 +480,18 @@
 }
 
 /* ── Tier table (skills by rarity) ── */
-.report-table .report-table__subheading {
-  margin: 0;
-  color: var(--report-table-text);
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
 .report-table .report-table__table--tiers .report-table__skill-label {
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
+.report-table .report-table__table--tiers .report-table__badge {
+  padding: 2px 7px;
+  font-size: 0.7rem;
+}
+
 .report-table .report-table__table--tiers .report-table__skill-label + .report-table__badge {
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 .report-table .report-table__table tbody tr:last-child td {
@@ -531,6 +523,7 @@
 .report-table .report-table__cell-employee {
   background: #fff;
   color: var(--report-table-text);
+  font-size: 0.82rem;
   font-weight: 600;
   border-right: 1px solid var(--report-table-grid);
 }
@@ -644,6 +637,10 @@
     align-items: center;
   }
 
+  .report-table .report-table__tab-bar {
+    padding: 0 28px;
+  }
+
   .report-table .report-table__heading {
     font-size: 1.75rem;
   }
@@ -653,9 +650,12 @@
     padding: 20px 24px;
   }
 
-  .report-table .report-table__table th,
+  .report-table .report-table__table th {
+    padding: 3px 14px;
+  }
+
   .report-table .report-table__table td {
-    padding: 12px 16px;
+    padding: 6px 14px;
   }
 
   .report-table .report-table__col-employee,
@@ -675,6 +675,10 @@
 
   .report-table .report-table__header {
     padding: 22px 36px 18px;
+  }
+
+  .report-table .report-table__tab-bar {
+    padding: 0 36px;
   }
 
   .report-table .report-table__body {

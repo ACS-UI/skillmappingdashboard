@@ -472,33 +472,31 @@ function renderTable(block, config, data, skillRarity, distribution) {
   );
 
   const tabs = [
-    { id: 'tier', label: 'Skill rarity' },
+    { id: 'tier', label: 'Skill Data' },
     { id: 'distribution', label: 'Skill Distribution' },
   ];
 
-  const toggleBar = createElement('div', 'report-table__toggle-bar');
+  const tabBar = createElement('div', 'report-table__tab-bar');
   tabs.forEach(({ id, label }, idx) => {
-    const btn = createElement('button', `report-table__toggle-btn${idx === 0 ? ' report-table__toggle-btn--active' : ''}`, label);
+    const btn = createElement('button', `report-table__tab${idx === 0 ? ' report-table__tab--active' : ''}`, label);
     btn.type = 'button';
     btn.dataset.panel = id;
-    toggleBar.append(btn);
+    tabBar.append(btn);
   });
 
   const header = createElement('div', 'report-table__header');
-  header.append(headerLeft, toggleBar);
-  wrapper.append(header);
+  header.append(headerLeft);
+  wrapper.append(header, tabBar);
 
-  // ── Toolbar: subheading (left) + legend + export (right) ──
-  const subheading = createElement('h3', 'report-table__subheading', tabs[0].label);
-
+  // ── Tab bar controls: legend + export (appended to tab bar on the right) ──
   const legend = createElement('div', 'report-table__legend');
   proficiencyLevels.forEach(({ level, label }) => {
     const initial = label.charAt(0).toUpperCase();
     const item = createElement('span', 'report-table__legend-item');
     const badge = createElement('span', `report-table__badge report-table__badge--l${level}`);
     badge.append(
+      document.createTextNode(`${label} `),
       createElement('span', 'report-table__legend-initial', `(${initial})`),
-      document.createTextNode(` ${label}`),
     );
     item.append(badge);
     legend.append(item);
@@ -597,12 +595,9 @@ function renderTable(block, config, data, skillRarity, distribution) {
 
   const toolbarRight = createElement('div', 'report-table__toolbar-right');
   toolbarRight.append(legend, infoBtn, exportBtn);
-
-  const toolbar = createElement('div', 'report-table__toolbar');
-  toolbar.append(subheading, toolbarRight);
+  tabBar.append(toolbarRight);
 
   const body = createElement('div', 'report-table__body');
-  body.append(toolbar);
 
   // ── Panels ──
   const tierPanel = createElement('div', 'report-table__panel report-table__panel--active');
@@ -615,18 +610,16 @@ function renderTable(block, config, data, skillRarity, distribution) {
 
   body.append(tierPanel, distPanel);
 
-  toggleBar.addEventListener('click', (e) => {
-    const btn = e.target.closest('.report-table__toggle-btn');
+  tabBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.report-table__tab');
     if (!btn) return;
     const target = btn.dataset.panel;
-    toggleBar.querySelectorAll('.report-table__toggle-btn').forEach((b) => {
-      b.classList.toggle('report-table__toggle-btn--active', b.dataset.panel === target);
+    tabBar.querySelectorAll('.report-table__tab').forEach((b) => {
+      b.classList.toggle('report-table__tab--active', b.dataset.panel === target);
     });
     body.querySelectorAll('.report-table__panel').forEach((panel) => {
       panel.classList.toggle('report-table__panel--active', panel.dataset.panel === target);
     });
-    const activeTab = tabs.find((t) => t.id === target);
-    if (activeTab) subheading.textContent = activeTab.label;
     legend.style.display = target === 'tier' ? '' : 'none';
     infoBtn.style.display = target === 'tier' ? '' : 'none';
     exportBtn.style.display = target === 'tier' ? '' : 'none';

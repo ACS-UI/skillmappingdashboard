@@ -394,6 +394,77 @@ function buildMultiSelect(options, initialValues, onChange) {
   return wrap;
 }
 
+const CHIPS_VISIBLE = 2;
+let activeChipsPanel = null;
+
+function buildChipsCell(items) {
+  const wrap = createElement('div', 'entry-form__spec-chips');
+  if (!items.length) return wrap;
+
+  items.slice(0, CHIPS_VISIBLE).forEach((item) => {
+    wrap.append(createElement('span', 'entry-form__spec-chip', item));
+  });
+
+  const hidden = items.slice(CHIPS_VISIBLE);
+  if (!hidden.length) return wrap;
+
+  const overflowBtn = createElement('button', 'entry-form__chips-overflow', `+${hidden.length} more`);
+  overflowBtn.type = 'button';
+  wrap.append(overflowBtn);
+
+  const panel = createElement('div', 'entry-form__multi-panel entry-form__chips-popover');
+  panel.hidden = true;
+  hidden.forEach((item) => panel.append(createElement('span', 'entry-form__spec-chip', item)));
+  document.body.append(panel);
+
+  function positionPanel() {
+    const rect = overflowBtn.getBoundingClientRect();
+    panel.style.top = `${rect.bottom + 4}px`;
+    panel.style.left = `${rect.left}px`;
+  }
+
+  function closePanel() {
+    panel.hidden = true;
+    activeChipsPanel = null;
+    document.removeEventListener('click', closeOnOutside);
+    window.removeEventListener('scroll', onScroll, true);
+  }
+
+  const onScroll = (e) => {
+    if (panel === e.target || panel.contains(e.target)) return;
+    closePanel();
+  };
+
+  const closeOnOutside = (e) => {
+    if (!panel.contains(e.target) && e.target !== overflowBtn) {
+      closePanel();
+    }
+  };
+
+  overflowBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.hidden) {
+      if (activeChipsPanel && activeChipsPanel !== panel) {
+        activeChipsPanel.hidden = true;
+      }
+      positionPanel();
+      panel.hidden = false;
+      activeChipsPanel = panel;
+      document.addEventListener('click', closeOnOutside);
+      window.addEventListener('scroll', onScroll, true);
+    } else {
+      closePanel();
+    }
+  });
+
+  multiPanelCleanups.set(panel, () => {
+    closePanel();
+    panel.remove();
+  });
+
+  return wrap;
+}
+
 export default async function decorate(block) {
   const config = readBlockConfig(block);
   const [user, skillList, [specializationList, platformList]] = await Promise.all([
@@ -821,24 +892,12 @@ export default async function decorate(block) {
       const specTd = document.createElement('td');
       specTd.dataset.label = 'Specialization';
       const slist = s.specializations || [];
-      if (slist.length) {
-        const chipsWrap = createElement('div', 'entry-form__spec-chips');
-        slist.forEach((sp) => chipsWrap.append(createElement('span', 'entry-form__spec-chip', sp)));
-        specTd.append(chipsWrap);
-      } else {
-        specTd.append(createElement('span', 'entry-form__dash', '—'));
-      }
+      specTd.append(slist.length ? buildChipsCell(slist) : createElement('span', 'entry-form__dash', '—'));
 
       const platformTd = document.createElement('td');
       platformTd.dataset.label = 'Platform';
       const plist = s.platforms || [];
-      if (plist.length) {
-        const chipsWrap = createElement('div', 'entry-form__spec-chips');
-        plist.forEach((p) => chipsWrap.append(createElement('span', 'entry-form__spec-chip', p)));
-        platformTd.append(chipsWrap);
-      } else {
-        platformTd.append(createElement('span', 'entry-form__dash', '—'));
-      }
+      platformTd.append(plist.length ? buildChipsCell(plist) : createElement('span', 'entry-form__dash', '—'));
 
       const certTd = document.createElement('td');
       certTd.dataset.label = 'Certification';
