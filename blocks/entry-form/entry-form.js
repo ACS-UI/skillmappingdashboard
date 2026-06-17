@@ -90,19 +90,6 @@ function buildIconSvg(paths, size = 16) {
 
 const multiPanelCleanups = new WeakMap();
 
-function buildSelect(options, currentValue) {
-  const sel = document.createElement('select');
-  sel.className = 'entry-form__select';
-  options.forEach(({ value, label }) => {
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = label;
-    if (value === String(currentValue)) opt.selected = true;
-    sel.append(opt);
-  });
-  return sel;
-}
-
 function buildCustomSelect(options, currentValue, onChange) {
   let selected = currentValue || '';
 
@@ -231,6 +218,92 @@ function buildCustomSelect(options, currentValue, onChange) {
 
   wrap.resetValue = () => {
     selected = '';
+    updateTrigger();
+  };
+
+  updateTrigger();
+  wrap.append(trigger);
+  return wrap;
+}
+
+function buildSimpleCustomSelect(options, currentValue, onChange) {
+  let selected = currentValue || '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'entry-form__multi-select';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'entry-form__multi-trigger';
+
+  const panel = document.createElement('div');
+  panel.className = 'entry-form__multi-panel entry-form__single-panel';
+  panel.hidden = true;
+  document.body.append(panel);
+
+  const itemEls = [];
+
+  function updateTrigger() {
+    const match = options.find(({ value }) => value === selected);
+    trigger.textContent = match ? match.label : (options[0]?.label || 'Select…');
+  }
+
+  function closeOnOutside(e) {
+    if (!wrap.contains(e.target) && !panel.contains(e.target)) {
+      panel.hidden = true;
+      document.removeEventListener('click', closeOnOutside);
+    }
+  }
+
+  function closePanel() {
+    panel.hidden = true;
+    document.removeEventListener('click', closeOnOutside);
+  }
+
+  function positionPanel() {
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top = `${rect.bottom + 4}px`;
+    panel.style.left = `${rect.left}px`;
+    panel.style.width = `${rect.width}px`;
+  }
+
+  options
+    .filter(({ value }) => value)
+    .forEach(({ value, label }) => {
+      const item = document.createElement('div');
+      item.className = 'entry-form__single-option';
+      if (value === selected) item.classList.add('entry-form__single-option--selected');
+      item.textContent = label;
+      item.addEventListener('click', () => {
+        selected = value;
+        itemEls.forEach((el) => el.classList.toggle('entry-form__single-option--selected', el === item));
+        updateTrigger();
+        closePanel();
+        onChange(value);
+      });
+      panel.append(item);
+      itemEls.push(item);
+    });
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.hidden) {
+      positionPanel();
+      panel.hidden = false;
+      document.addEventListener('click', closeOnOutside);
+    } else {
+      closePanel();
+    }
+  });
+
+  multiPanelCleanups.set(panel, () => {
+    document.removeEventListener('click', closeOnOutside);
+    panel.remove();
+  });
+
+  wrap.resetValue = () => {
+    selected = '';
+    itemEls.forEach((el) => el.classList.remove('entry-form__single-option--selected'));
     updateTrigger();
   };
 
@@ -612,22 +685,10 @@ export default async function decorate(block) {
     ));
     tr.append(platformTd);
 
-    // ── Certification ──
-    const certTd = document.createElement('td');
-    certTd.dataset.label = 'Certification';
-    const certSel = buildSelect([
-      { value: '', label: 'Select…' },
-      { value: 'no', label: 'No' },
-      { value: 'yes', label: 'Yes' },
-    ], input.cert);
-    certTd.append(certSel);
-    tr.append(certTd);
-
-    // ── Title of Certificate ──
+    // ── Title of Certificate (built first so the cert onChange callback can ref it) ──
     const titleTd = document.createElement('td');
     titleTd.dataset.label = 'Certificate';
     const certTitleWrap = createElement('div', 'entry-form__cert-title-wrap');
-    const certDash = createElement('span', 'entry-form__dash', '—');
     const titleInput = document.createElement('input');
     titleInput.type = 'text';
     titleInput.className = 'entry-form__input';
@@ -638,14 +699,21 @@ export default async function decorate(block) {
 
     const dashWrap = document.createElement('div');
     dashWrap.className = 'entry-form__dash-center';
-    dashWrap.append(certDash);
+    dashWrap.append(createElement('span', 'entry-form__dash', '—'));
 
     certTitleWrap.style.display = input.cert === 'yes' ? 'block' : 'none';
     dashWrap.style.display = input.cert === 'yes' ? 'none' : '';
 
-    certSel.addEventListener('change', (e) => {
-      input.cert = e.target.value;
-      if (e.target.value === 'yes') {
+    // ── Certification ──
+    const certTd = document.createElement('td');
+    certTd.dataset.label = 'Certification';
+    const certSel = buildSimpleCustomSelect([
+      { value: '', label: 'Select…' },
+      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Yes' },
+    ], input.cert, (value) => {
+      input.cert = value;
+      if (value === 'yes') {
         certTitleWrap.style.display = 'block';
         dashWrap.style.display = 'none';
         titleInput.focus();
@@ -656,6 +724,8 @@ export default async function decorate(block) {
         dashWrap.style.display = '';
       }
     });
+    certTd.append(certSel);
+    tr.append(certTd);
 
     titleTd.append(certTitleWrap, dashWrap);
     tr.append(titleTd);
