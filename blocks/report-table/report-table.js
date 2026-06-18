@@ -367,7 +367,7 @@ function computeDistribution(employees, skillRarity, employeeRecords) {
  * joined with the skill report via computeDistribution().
  */
 function renderDistributionTable(body, config, distribution) {
-  const levels = (config.levels || 'P20,P30,P40,P50').split(',').map((s) => s.trim());
+  const levels = (config.levels || 'P10,P20,P30,P40,P50').split(',').map((s) => s.trim());
   const locationNames = (config.locations || 'Noida,Bangalore').split(',').map((s) => s.trim());
 
   // ── Location filter buttons ──

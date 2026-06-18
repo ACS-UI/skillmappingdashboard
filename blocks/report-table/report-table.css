@@ -626,6 +626,12 @@
   color: #fff;
 }
 
+.report-table .report-table__location-btn--active:hover {
+  border-color: var(--report-table-accent-strong);
+  background: var(--report-table-accent-strong);
+  color: #fff;
+}
+
 /* ── Responsive ── */
 @media (width >= 600px) {
   .report-table .report-table__wrapper {
