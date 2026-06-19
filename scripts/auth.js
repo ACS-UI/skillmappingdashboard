@@ -1,4 +1,5 @@
 import { isManager, buildUserFromMapping } from './employee-mapping.js';
+import { getUser } from './db.js';
 
 /**
  * True on local dev and branch-preview hosts, where SSO is skipped and
