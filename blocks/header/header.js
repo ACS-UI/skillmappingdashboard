@@ -80,7 +80,7 @@ export default async function decorate(block) {
   // Inject the view toggle for managers, left of the logout button.
   try {
     const user = await getSessionUser();
-    if (isManager(user.email)) {
+    if (await isManager(user?.email)) {
       const currentView = window.location.pathname.startsWith('/employee-details') ? 'report' : 'entry';
       actions.prepend(buildViewToggle(currentView));
     }
