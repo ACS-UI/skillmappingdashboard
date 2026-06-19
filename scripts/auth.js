@@ -59,8 +59,8 @@ async function loadIms(onReady) {
                 ldap,
                 isManager: managerFlag,
               });
-            } catch { /* continue if profile fetch fails */ }
-            onReady();
+              onReady();
+            } catch { window.adobeIMS?.signIn(); }
           } else {
             window.adobeIMS?.signIn();
           }
