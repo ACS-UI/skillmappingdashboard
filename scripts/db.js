@@ -30,14 +30,14 @@ export async function setUser(user) {
 }
 
 export async function getUser() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const request = tx.objectStore(STORE_NAME).get(USER_KEY);
-    request.onsuccess = (event) => resolve(event.target.result || null);
-    request.onerror = (event) => reject(event.target.error);
-  });
+  const user = await window.adobeIMS.getProfile();
+  return {
+    email: user?.email ?? "",
+    ldap: "robinvarshn" ?? "",
+    name: user?.displayName ?? "",
+  }
 }
+ 
 
 export async function clearUser() {
   const db = await openDb();

@@ -1,6 +1,7 @@
 import logout, { getSessionUser } from '../../scripts/auth.js';
 import buildViewToggle from '../../scripts/view-toggle.js';
-
+import { isManager } from '../../scripts/employee-mapping.js';
+ 
 export default async function decorate(block) {
   const nav = document.createElement('nav');
   nav.setAttribute('aria-label', 'Main navigation');
@@ -79,7 +80,7 @@ export default async function decorate(block) {
   // Inject the view toggle for managers, left of the logout button.
   try {
     const user = await getSessionUser();
-    if (user?.isManager) {
+    if (isManager(user.email)) {
       const currentView = window.location.pathname.startsWith('/employee-details') ? 'report' : 'entry';
       actions.prepend(buildViewToggle(currentView));
     }
