@@ -1,5 +1,5 @@
-import { setUser, getUser, clearUser } from './db.js';
 import { isManager, buildUserFromMapping } from './employee-mapping.js';
+import { getUser } from './db.js';
 
 /**
  * True on local dev and branch-preview hosts, where SSO is skipped and
@@ -53,12 +53,6 @@ async function loadIms(onReady) {
               try {
                 managerFlag = await isManager(ldap);
               } catch { /* default to non-manager if the mapping can't be read */ }
-              await setUser({
-                name: profile.displayName || '',
-                email,
-                ldap,
-                isManager: managerFlag,
-              });
               onReady();
             } catch { window.adobeIMS?.signIn(); }
           } else {

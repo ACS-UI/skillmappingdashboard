@@ -659,7 +659,7 @@ export default async function decorate(block) {
 
   // Only verified managers may view this report. Outside test environments an
   // unidentified user (no SSO record) is denied as well.
-  const allowed = isManager(user?.email) || isTestEnvironment();
+  const allowed = await isManager(user?.email) || isTestEnvironment();
   if (!allowed) {
     hideSpinner();
     window.location.replace('/');
