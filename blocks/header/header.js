@@ -1,7 +1,7 @@
 import logout, { getSessionUser } from '../../scripts/auth.js';
 import buildViewToggle from '../../scripts/view-toggle.js';
 import { isManager } from '../../scripts/employee-mapping.js';
- 
+
 export default async function decorate(block) {
   const nav = document.createElement('nav');
   nav.setAttribute('aria-label', 'Main navigation');
