@@ -83,7 +83,7 @@ Table-based UI where employees submit their skills. Columns: Skill, Experience i
 
 Manager-facing report with two tables. Content width capped at 1280px, centred with `margin: 0 auto`.
 
-**Access gate** — resolves the session user; `allowed = user ? user.isManager : isTestEnvironment()`. Non-managers (or unidentified users in production) are redirected to `/` before any data is fetched.
+**Access gate** — resolves the session user; `allowed = await isManager(user?.email) || isTestEnvironment()`. Non-managers (or unidentified users in production) are redirected to `/` before any data is fetched.
 
 **Direct-reports filter** — employees filtered to those whose `Manager LDAP` equals the logged-in manager's LDAP (one level only), joined on the normalised LDAP local-part via `employee-mapping.js`.
 
@@ -105,9 +105,9 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 
 #### Table 2 — "Skill Distribution" (`renderDistributionTable`)
 
-- Rows = rarity tiers; columns = P-level bands (P20/P30/P40/P50); cells = employee counts
+- Rows = rarity tiers; columns = P-level bands (P10/P20/P30/P40/P50); cells = employee counts
 - **Location filter** — pill buttons (Noida / Bangalore) swap cell values in place without a DOM rebuild
-- **Authorable** via optional block config rows in the da.live `employee-details` document: `levels` (comma list, default `P20,P30,P40,P50`) and `locations` (comma list, default `Noida,Bangalore`)
+- **Authorable** via optional block config rows in the da.live `employee-details` document: `levels` (comma list, default `P10,P20,P30,P40,P50`) and `locations` (comma list, default `Noida,Bangalore`)
 - Distribution computed at runtime via `computeDistribution()`: joins each direct-report's LDAP with `getAllEmployeeRecords()` to get `jobLevel` and `location`; each employee counted once per rarity tier they have ≥1 skill in
 
 **Other:**
@@ -125,7 +125,7 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 | `scripts/auth.js` | SSO wired: `loadIms()`, `logout()` (default export), `getSessionUser()` (+ `?as=` test impersonation), `isTestEnvironment()`. Derives `isManager` from the mapping sheet on login |
 | `scripts/employee-mapping.js` | Loads/caches `/employee-mapping.json`; `normalizeLdap`, `getEmployeeMapping`, `isManager`, `getDirectReports`, `getAllEmployeeRecords` (includes `jobLevel`/`location`), `buildUserFromMapping` |
 | `scripts/view-toggle.js` | `buildViewToggle(currentView)` — segmented "Enter Skills ⇄ Manager View" control; preserves `?as=` on navigation. Rendered by the global header for managers |
-| `scripts/db.js` | IndexDB — `setUser`, `getUser`, `clearUser` for `{ name, email, ldap, isManager }` |
+| `scripts/db.js` | `getUser()` — wraps `window.adobeIMS.getProfile()` to return `{ name, email, ldap }` |
 | `scripts/skill-data.js` | Legacy mock data — blocks use the live API |
 | `scripts/scripts.js` | AEM page decoration entry point |
 

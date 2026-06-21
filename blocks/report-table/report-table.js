@@ -1,6 +1,8 @@
 import { getSkillReport } from '../../scripts/api.js';
 import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
-import { isManager, getDirectReports, normalizeLdap, getAllEmployeeRecords } from '../../scripts/employee-mapping.js';
+import {
+  isManager, getDirectReports, normalizeLdap, getAllEmployeeRecords,
+} from '../../scripts/employee-mapping.js';
 import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
 function readBlockConfig(block) {
