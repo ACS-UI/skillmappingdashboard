@@ -123,7 +123,7 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 |---|---|
 | `scripts/api.js` | `getSkillReport()`, `getEmployeeSkillReport(id)`, `submitSkillReport()`, `buildSkillsPayload()` (specialization → comma string, platform → comma string), async `getLevelFromExperienceMonths()` |
 | `scripts/auth.js` | SSO wired: `loadIms()`, `logout()` (default export), `getSessionUser()` (+ `?as=` test impersonation), `isTestEnvironment()`. Derives `isManager` from the mapping sheet on login |
-| `scripts/employee-mapping.js` | Loads/caches `/employee-mapping.json`; `normalizeLdap`, `getEmployeeMapping`, `isManager`, `getDirectReports`, `getAllEmployeeRecords` (includes `jobLevel`/`location`), `buildUserFromMapping` |
+| `scripts/employee-mapping.js` | Loads/caches the employee→manager mapping (authenticated `employeeMapping` API in prod, public `/employee-mapping.json` sheet locally — see detail below); `normalizeLdap`, `getEmployeeMapping`, `isManager`, `getDirectReports`, `getAllEmployeeRecords` (includes `jobLevel`/`location`), `buildUserFromMapping` |
 | `scripts/view-toggle.js` | `buildViewToggle(currentView)` — segmented "Enter Skills ⇄ Manager View" control; preserves `?as=` on navigation. Rendered by the global header for managers |
 | `scripts/db.js` | `getUser()` — wraps `window.adobeIMS.getProfile()` to return `{ name, email, ldap }` |
 | `scripts/skill-data.js` | Legacy mock data — blocks use the live API |
@@ -137,8 +137,9 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 
 ### `scripts/employee-mapping.js` detail
 
-- `normalizeLdap(value)` — reduces an LDAP/email to its lowercase local-part so the skill-report API and the sheet join on one key
-- `isManager(ldap)` — true iff the LDAP appears as a `Manager LDAP` for ≥1 employee
+- **Data source is token-aware.** When `window.adobeIMS.getAccessToken()` returns a token (production, where blocks load only after IMS `onReady`), it reads the authenticated `employeeMapping` backend endpoint (camelCase keys: `empLdap`, `managerLdap`, `jobLevel`, `resourceName`, `workdayManager`, `location`, `locationCode`). With no token (localhost / `.aem.page` preview) it falls back to the public da.live `/employee-mapping.json` sheet (Title Case keys: `Emp_LDAP`, `Manager LDAP`, …). `fromApiRow`/`fromSheetRow` normalise both into one internal record shape, so downstream code is source-agnostic. This keeps the full mapping off the public network for real users while preserving `?as=<ldap>` local testing.
+- `normalizeLdap(value)` — reduces an LDAP/email to its lowercase local-part so the skill-report API and the mapping join on one key
+- `isManager(ldap)` — true iff the LDAP appears as a `managerLdap`/`Manager LDAP` for ≥1 employee
 - `getAllEmployeeRecords()` — returns all rows including `jobLevel` (`"30"` → `"P30"`) and `location`
 
 ### `blocks/header`
