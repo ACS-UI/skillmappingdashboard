@@ -1,5 +1,5 @@
-import { setUser, getUser, clearUser } from './db.js';
-import { isManager, buildUserFromMapping } from './employee-mapping.js';
+import { buildUserFromMapping } from './employee-mapping.js';
+import getUser from './db.js';
 
 /**
  * True on local dev and branch-preview hosts, where SSO is skipped and
@@ -46,19 +46,6 @@ async function loadIms(onReady) {
           clearTimeout(timeout);
           if (window.adobeIMS?.isSignedInUser()) {
             try {
-              const profile = await window.adobeIMS.getProfile();
-              const email = profile.email || '';
-              const ldap = email.split('@')[0] || profile.userId || '';
-              let managerFlag = false;
-              try {
-                managerFlag = await isManager(ldap);
-              } catch { /* default to non-manager if the mapping can't be read */ }
-              await setUser({
-                name: profile.displayName || '',
-                email,
-                ldap,
-                isManager: managerFlag,
-              });
               onReady();
             } catch { window.adobeIMS?.signIn(); }
           } else {
@@ -79,7 +66,6 @@ export async function initAuth(onReady) {
 }
 
 export default async function logout() {
-  await clearUser();
   if (window.adobeIMS) {
     window.adobeIMS.signOut();
   } else {

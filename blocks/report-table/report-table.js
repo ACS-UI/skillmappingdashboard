@@ -1,6 +1,8 @@
 import { getSkillReport } from '../../scripts/api.js';
 import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
-import { getDirectReports, normalizeLdap, getAllEmployeeRecords } from '../../scripts/employee-mapping.js';
+import {
+  isManager, getDirectReports, normalizeLdap, getAllEmployeeRecords,
+} from '../../scripts/employee-mapping.js';
 import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
 function readBlockConfig(block) {
@@ -659,7 +661,7 @@ export default async function decorate(block) {
 
   // Only verified managers may view this report. Outside test environments an
   // unidentified user (no SSO record) is denied as well.
-  const allowed = user ? user.isManager : isTestEnvironment();
+  const allowed = await isManager(user?.email) || isTestEnvironment();
   if (!allowed) {
     hideSpinner();
     window.location.replace('/');
