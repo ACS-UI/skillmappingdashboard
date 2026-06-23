@@ -1,0 +1,15 @@
+# Normalize all text files to LF in the working tree so the Airbnb ESLint
+# linebreak-style (LF) rule passes on Windows checkouts.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
