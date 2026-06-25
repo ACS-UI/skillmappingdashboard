@@ -1,7 +1,7 @@
 import { getSkillReport } from '../../scripts/api.js';
-import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
+import { getUserProfile, showFallbackPage } from '../../scripts/profile.js';
 import {
-  isManager, getDirectReports, normalizeLdap, getAllEmployeeRecords,
+  getDirectReports, normalizeLdap, getAllEmployeeRecords,
 } from '../../scripts/employee-mapping.js';
 import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
@@ -637,15 +637,15 @@ function renderTable(block, config, data, skillRarity, distribution) {
 
 /**
  * Restricts the employee list to the logged-in manager's direct reports.
- * When there is no authenticated user (local/preview, where auth is skipped)
- * the full list is returned so the view remains testable.
+ * When no manager LDAP is known the full list is returned so the view stays
+ * testable.
  * @param {Array} employees employees from the skill-report API
- * @param {object|null} user the IndexDB user record
+ * @param {string} managerLdap the logged-in user's LDAP (profile.empLdap)
  * @returns {Promise<Array>}
  */
-async function filterToDirectReports(employees, user) {
-  if (!user?.ldap) return employees;
-  const reportKeys = new Set((await getDirectReports(user.ldap)).map((report) => report.ldap));
+async function filterToDirectReports(employees, managerLdap) {
+  if (!managerLdap) return employees;
+  const reportKeys = new Set((await getDirectReports(managerLdap)).map((report) => report.ldap));
   return employees.filter((emp) => reportKeys.has(normalizeLdap(emp.email || emp.employeeId)));
 }
 
@@ -654,15 +654,18 @@ export default async function decorate(block) {
   block.textContent = '';
   showSpinner('Loading skill report…');
 
-  let user = null;
+  let profile = null;
   try {
-    user = await getSessionUser();
-  } catch { /* treat as unidentified */ }
+    profile = await getUserProfile();
+  } catch {
+    hideSpinner();
+    showFallbackPage();
+    return;
+  }
 
-  // Only verified managers may view this report. Outside test environments an
-  // unidentified user (no SSO record) is denied as well.
-  const allowed = await isManager(user?.email) || isTestEnvironment();
-  if (!allowed) {
+  // Role is the source of truth: only managers and admins may view this report;
+  // employees are sent back to the homepage.
+  if (profile?.role !== 'manager' && profile?.role !== 'admin') {
     hideSpinner();
     window.location.replace('/');
     return;
@@ -672,7 +675,7 @@ export default async function decorate(block) {
     const data = await getSkillReport();
     // Rarity is computed across the whole workforce before filtering to the team.
     const skillRarity = computeSkillRarity(data.employees);
-    const employees = await filterToDirectReports(data.employees, user);
+    const employees = await filterToDirectReports(data.employees, profile.empLdap);
 
     if (employees.length === 0) {
       hideSpinner();
