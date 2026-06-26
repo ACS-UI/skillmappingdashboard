@@ -19,19 +19,20 @@ An internal Adobe tool for mapping and tracking frontend skill proficiency acros
 Open app (index — entry form lives here)
 │
 ├── SSO login via Adobe IMS (wired in auth.js)
-│   └── return profile → setUser({ name, email, ldap, isManager }) in db.js
-│       └── isManager derived from /employee-mapping.json
+│   └── header calls getUserProfile() → GET /getProfile (prod) or ?as= mapping (local)
+│       └── profile = { empLdap, empEmail, userId, role }  (role: employee/manager/admin)
+│           └── skillmapping:profile custom event dispatched on document
+│               └── role === manager|admin → view toggle shown in header
 │
 ├── Fill form → POST skill report → Backend API
 │   └── Success → fetch GET employee/{id} → Saved view
 │       ├── Edit any saved skill → Save changes → re-POST
 │       └── + Add more skills → back to blank form
 │
-├── Managers also see a view toggle (Enter Skills ⇄ Manager View)
-│   └── Manager View (/employee-details) → direct-reports skill report
-│       (non-managers are redirected back to /)
+├── Managers/admins also see a view toggle (Enter Skills ⇄ Manager View)
+│   └── Manager View (/employee-details) → gated on role; employees redirected to /
 │
-Logout (either page) → clearUser() → redirect to /
+Logout (either page) → logout() → redirect to /
 ```
 
 ---
@@ -83,9 +84,9 @@ Table-based UI where employees submit their skills. Columns: Skill, Experience i
 
 Manager-facing report with two tables. Content width capped at 1280px, centred with `margin: 0 auto`.
 
-**Access gate** — resolves the session user; `allowed = await isManager(user?.email) || isTestEnvironment()`. Non-managers (or unidentified users in production) are redirected to `/` before any data is fetched.
+**Access gate** — calls `getUserProfile()` and gates on `role === 'manager' || role === 'admin'`. Non-managers (or profiles that fail to load in production) are redirected to `/` before any data is fetched.
 
-**Direct-reports filter** — employees filtered to those whose `Manager LDAP` equals the logged-in manager's LDAP (one level only), joined on the normalised LDAP local-part via `employee-mapping.js`.
+**Direct-reports filter** — employees filtered to those whose `Manager LDAP` equals `profile.empLdap` (one level only), joined on the normalised LDAP local-part via `employee-mapping.js`.
 
 **Skill rarity tiers** (Generic / Niche / Super niche / Ultra niche) — computed from how many employees across the whole workforce hold each skill (`computeSkillRarity` + `getRarityTier`). Thresholds in `RARITY_TIERS`: Generic ≥50%, Niche ≥30%, Super niche ≥20%, Ultra niche ≥10%.
 
@@ -121,19 +122,26 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 
 | File | Purpose |
 |---|---|
-| `scripts/api.js` | `getSkillReport()`, `getEmployeeSkillReport(id)`, `submitSkillReport()`, `buildSkillsPayload()` (specialization → comma string, platform → comma string), async `getLevelFromExperienceMonths()` |
-| `scripts/auth.js` | SSO wired: `loadIms()`, `logout()` (default export), `getSessionUser()` (+ `?as=` test impersonation), `isTestEnvironment()`. Derives `isManager` from the mapping sheet on login |
+| `scripts/api.js` | `getProfile()`, `getSkillReport()`, `getEmployeeSkillReport(id)`, `submitSkillReport()`, `deleteSkill()`, `buildSkillsPayload()` (specialization → comma string, platform → comma string), async `getLevelFromExperienceMonths()` |
+| `scripts/profile.js` | `getUserProfile()` — cached per page load, calls `getProfile()` in prod or derives from `?as=`/`?role=` locally; `showFallbackPage(message)` — replaces body with an error + Retry button (idempotent) |
+| `scripts/auth.js` | SSO wired: `loadIms()`, `logout()` (default export), `getSessionUser()` (+ `?as=` test impersonation), `isTestEnvironment()` |
 | `scripts/employee-mapping.js` | Loads/caches the employee→manager mapping (authenticated `employeeMapping` API in prod, public `/employee-mapping.json` sheet locally — see detail below); `normalizeLdap`, `getEmployeeMapping`, `isManager`, `getDirectReports`, `getAllEmployeeRecords` (includes `jobLevel`/`location`), `buildUserFromMapping` |
-| `scripts/view-toggle.js` | `buildViewToggle(currentView)` — segmented "Enter Skills ⇄ Manager View" control; preserves `?as=` on navigation. Rendered by the global header for managers |
+| `scripts/view-toggle.js` | `buildViewToggle(currentView)` — segmented "Enter Skills ⇄ Manager View" control; preserves `?as=` on navigation. Rendered by the global header for managers/admins |
 | `scripts/db.js` | `getUser()` — wraps `window.adobeIMS.getProfile()` to return `{ name, email, ldap }` |
 | `scripts/skill-data.js` | Legacy mock data — blocks use the live API |
 | `scripts/scripts.js` | AEM page decoration entry point |
 
 ### `scripts/api.js` detail
 
-- `API_BASE_URL` — base constant; `SKILL_REPORT_URL` derived from it
+- `API_BASE_URL` — base constant; `SKILL_REPORT_URL` and `PROFILE_URL` derived from it
 - `requestJson()` attaches a `Bearer` token from `window.adobeIMS.getAccessToken()` when available
+- `getProfile()` — `GET /getProfile`; returns `{ empLdap, empEmail, userId, role }`
 - `buildSkillsPayload(employeeId, email, name, skills)` — constructs POST body; `specialization` and `platform` joined to comma-separated strings; cert `certificateImageUrl` only included when present
+
+### `scripts/profile.js` detail
+
+- `getUserProfile()` — single cached promise per page load; in production calls `getProfile()` (Bearer token attached); on local/preview resolves from `?as=<ldap>` + `buildUserFromMapping`, with optional `?role=` override so all role scenarios can be tested locally without IMS
+- `showFallbackPage(message?)` — idempotent; replaces `document.body` with a centred error message and a Retry button (inline styles, no CSS dependency). Called by blocks that catch a profile load failure
 
 ### `scripts/employee-mapping.js` detail
 
@@ -144,7 +152,7 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 
 ### `blocks/header`
 
-Global Adobe header: brand/logo, actions area (view toggle for managers + Logout). Imports `logout`, `getSessionUser` from `auth.js` and `buildViewToggle` from `view-toggle.js`. Uses `.header > nav` (not `.header nav`) so the selector doesn't also match the toggle's nested `nav`.
+Global Adobe header: brand/logo, actions area (view toggle for managers/admins + Logout). Imports `logout` from `auth.js`, `buildViewToggle` from `view-toggle.js`, and `getUserProfile`/`showFallbackPage` from `profile.js`. After rendering, calls `getUserProfile()`, dispatches `skillmapping:profile` custom event on `document` (so other blocks can react), then conditionally prepends the view toggle for `manager`/`admin` roles. If the profile call throws, calls `showFallbackPage()`. Uses `.header > nav` (not `.header nav`) so the selector doesn't also match the toggle's nested `nav`.
 
 ---
 
@@ -185,12 +193,26 @@ Filtering joins the sheet's `Emp_LDAP`/`Manager LDAP` with the skill API's `empl
 
 | Method | Endpoint | Function | Used by |
 |---|---|---|---|
+| GET | `/getProfile` | `getProfile()` | `profile.js` → header, report-table |
 | GET | `/skillReport` | `getSkillReport()` | `report-table` |
 | GET | `/skillReport/employee/{employeeId}` | `getEmployeeSkillReport(id)` | `entry-form` saved view |
 | POST | `/skillReport` | `submitSkillReport()` | `entry-form` |
 | DELETE | `/skillReport/employee/{employeeId}/skill/{skillName}` | `deleteSkill()` | `entry-form` delete action |
 
 > Backend **merges/appends** on POST — does not replace the full skill set.
+
+### GET getProfile response shape
+
+```json
+{
+  "empLdap": "robinvarshn",
+  "empEmail": "robinvarshn@adobe.com",
+  "userId": "robinvarshn",
+  "role": "manager"
+}
+```
+
+`role` is one of `"employee"`, `"manager"`, or `"admin"`.
 
 ### POST payload shape
 
