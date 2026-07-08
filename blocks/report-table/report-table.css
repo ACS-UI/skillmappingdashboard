@@ -724,6 +724,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   background: #fff;
+
+  /* Pull 1px left so the first column's divider tucks under the section border
+     (clipped by the tier's overflow: hidden) instead of doubling it. */
+  margin-left: -1px;
 }
 
 .report-table .report-table__md-skill {
@@ -731,7 +735,11 @@
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
+
+  /* Top border separates rows, left border separates columns. Borders sit only
+     on real cells, so a partly-filled last row leaves no dangling lines. */
   border-top: 1px solid var(--report-table-grid);
+  border-left: 1px solid var(--report-table-grid);
 }
 
 .report-table .report-table__md-skill .report-table__skill-label {
