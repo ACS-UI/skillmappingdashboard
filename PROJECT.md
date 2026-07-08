@@ -90,19 +90,19 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 
 **Skill rarity tiers** (Generic / Niche / Super niche / Ultra niche) — computed from how many employees across the whole workforce hold each skill (`computeSkillRarity` + `getRarityTier`). Thresholds in `RARITY_TIERS`: Generic ≥50%, Niche ≥30%, Super niche ≥20%, Ultra niche ≥10%.
 
-**Shared tier-grouping helpers** (single source of truth used by both tables and the CSV export):
+**Shared tier-grouping helpers** (single source of truth used by the Skill Data view, the distribution table, and the CSV export):
 - `getSkillTier(name, skillRarity)` — the tier a skill falls into
 - `groupSkillsByTier(skills, skillRarity)` — `Map<tierId, sortedSkills[]>` in `RARITY_TIERS` order, alphabetical within each tier
 
-#### Table 1 — "Skills by rarity tier" (`renderTierTable`)
+#### Tab 1 — "Skill Data" (`renderMasterDetail`)
 
-- One column group per rarity tier (Generic → Ultra niche), each split into **Skill** and **Months** sub-columns
-- Two-row `thead`: rose-gradient banner row (`colspan=2` per tier) + a Skill/Months sub-header row
-- Body: one row per employee, skills zipped row-by-row across tiers (side-by-side). Employee name cell spans all of that employee's rows (`rowSpan`). Dark horizontal rule between employees
-- Rose tier theming — `--tier-accent` CSS variable ramping light (common) → deep (rare); kept distinct from multicolour proficiency badges
-- Single-letter proficiency badge (F/D/P/E/M) next to each skill name
-- Sticky employee column
-- **Export CSV** (`skillDataToCsv`) — a flat, one-row-per-skill export: `Employee, Rarity Tier, Skill, Proficiency Code, Proficiency Level, Experience (Months)`. Employees alphabetical; within each, skills grouped in tier order then alphabetical. Downloaded with a UTF-8 BOM so Excel keeps accented characters. (Mirrors the "Data" sheet of the reference workbook, not the on-screen grid.)
+Master/detail view (chosen over a wide tiered grid so it scales to 80+ direct reports and to employees with 50+ skills — only one person renders at a time).
+
+- **Sidebar (left)** — scrollable list of employees with a per-person skill count and a sticky "N employees" header. Search box filters the list; selecting a name shows that person's detail. Filtering keeps the current selection when it survives, else jumps to the first match.
+- **Detail (right)** — the selected employee's skills grouped into rarity-tier sections (`buildDetailSections`), stacked in rarity order (Generic → Ultra niche). Each section has a colour-coded header (rarity "heat" ramp: common = neutral grey → rare = red), **rarity pips** (1 = common … 4 = rarest), a skill count, and the skills flowing across an auto-fill grid.
+- Single-letter proficiency badge (F/D/P/E/M) next to each skill name.
+- **Fixed-height frame** (`66vh`): both panes scroll internally so neither shows empty space regardless of who's selected. Sticky sidebar header and detail header. Stacks vertically below 600px.
+- **Export CSV** (`skillDataToCsv`) — a flat, one-row-per-skill export: `Employee, Rarity Tier, Skill, Proficiency Code, Proficiency Level, Experience (Months)`. Employees alphabetical; within each, skills grouped in tier order then alphabetical. Downloaded with a UTF-8 BOM so Excel keeps accented characters. (Mirrors the "Data" sheet of the reference workbook.)
 
 #### Table 2 — "Skill Distribution" (`renderDistributionTable`)
 
