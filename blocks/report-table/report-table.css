@@ -736,10 +736,12 @@
   gap: 6px;
   padding: 7px 12px;
 
-  /* Top border separates rows, left border separates columns. Borders sit only
-     on real cells, so a partly-filled last row leaves no dangling lines. */
+  /* Top/left borders separate rows and columns; the bottom border closes off
+     each cell so a partly-filled last row still reads as a tidy grid (like a
+     spreadsheet) rather than leaving open-ended columns. */
   border-top: 1px solid var(--report-table-grid);
   border-left: 1px solid var(--report-table-grid);
+  border-bottom: 1px solid var(--report-table-grid);
 }
 
 .report-table .report-table__md-skill .report-table__skill-label {
