@@ -8,6 +8,9 @@ helix-importer-ui
 *.bak
 .idea
 
+# Local design prototypes / scratch HTML (not part of the site)
+drafts/
+
 # Ensure these files are tracked
 !CLAUDE.md
 !AGENTS.md

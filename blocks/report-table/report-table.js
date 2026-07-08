@@ -71,12 +71,6 @@ function groupSkillsByTier(skills, skillRarity) {
   return byTier;
 }
 
-// An employee's skills flattened in tier order (Generic → Ultra niche), then
-// alphabetically within a tier — the order used by the CSV export.
-function sortedTierSkills(emp, skillRarity) {
-  return [...groupSkillsByTier(emp.skills, skillRarity).values()].flat();
-}
-
 /**
  * Computes a rarity tier per skill from how many employees across the whole
  * report hold it. Common skills are "generic", rare ones "ultra niche".
@@ -117,51 +111,44 @@ function getLevelInitial(proficiencyLevels, level) {
   return label && label !== '—' ? label.charAt(0).toUpperCase() : '';
 }
 
-// Produces a CSV that mirrors the two-row thead (group + sub-header) and the
-// rowspan body of the on-screen tier table so the export is 1:1 with what is
-// displayed: Employee name only on the first skill row, skill placed under its
-// matching tier column, all other tier columns empty for that row.
-function tierTableToCsv(employees, proficiencyLevels, skillRarity) {
-  // Row 1: Employee | Generic | "" | Niche | "" | …  (mirrors colspan-2 banners)
-  const groupRow = ['Employee'];
-  // Row 2: ""       | Skill   | Months | Skill | Months | … (sub-column headers)
-  const subRow = [''];
-  RARITY_TIERS.forEach((tier) => {
-    groupRow.push(tier.label, '');
-    subRow.push('Skill', 'Months');
-  });
+// Produces a flat, one-row-per-skill CSV: Employee, Rarity Tier, Skill,
+// Proficiency Code, Proficiency Level, Experience (Months). Employees are
+// alphabetical; within each, skills are grouped in tier order then alphabetical
+// (via groupSkillsByTier). Skills below the lowest rarity tier are omitted,
+// matching what the tables display.
+function skillDataToCsv(employees, proficiencyLevels, skillRarity) {
+  const header = ['Employee', 'Rarity Tier', 'Skill', 'Proficiency Code',
+    'Proficiency Level', 'Experience (Months)'];
+  const rows = [header];
 
-  const dataRows = [];
-  employees.forEach((emp) => {
-    const skills = sortedTierSkills(emp, skillRarity);
-    if (skills.length === 0) {
-      dataRows.push([emp.name, ...RARITY_TIERS.flatMap(() => ['', ''])]);
-      return;
-    }
-    skills.forEach((skill, index) => {
-      // Mirror the on-screen rowspan: name only on the employee's first row.
-      const row = [index === 0 ? emp.name : ''];
-      const skillTierId = getSkillTier(skill.name, skillRarity)?.id;
-      RARITY_TIERS.forEach((tier) => {
-        if (tier.id === skillTierId) {
-          const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-          row.push(initial ? `${skill.name} (${initial})` : skill.name);
-          row.push(skill.expInMonths != null ? `${skill.expInMonths} M` : '');
-        } else {
-          row.push('', '');
-        }
+  [...employees]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((emp) => {
+      groupSkillsByTier(emp.skills, skillRarity).forEach((skills, tierId) => {
+        const tier = RARITY_TIERS.find((t) => t.id === tierId);
+        skills.forEach((skill) => {
+          rows.push([
+            emp.name,
+            tier.label,
+            skill.name,
+            getLevelInitial(proficiencyLevels, skill.proficiencyLevel),
+            getLevelLabel(proficiencyLevels, skill.proficiencyLevel),
+            skill.expInMonths != null ? skill.expInMonths : '',
+          ]);
+        });
       });
-      dataRows.push(row);
     });
-  });
 
-  return [groupRow, subRow, ...dataRows]
+  return rows
     .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
     .join('\n');
 }
 
 function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  // Prepend a UTF-8 BOM so Excel opens the file with the right encoding
+  // (keeps accented names and symbols intact).
+  const bom = String.fromCharCode(0xFEFF);
+  const blob = new Blob([bom, content], { type: 'text/csv;charset=utf-8' });
   const href = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = href;
@@ -592,7 +579,7 @@ function renderTable(block, config, data, skillRarity, distribution) {
   exportBtn.type = 'button';
   exportBtn.addEventListener('click', () => downloadCsv(
     'skill-report.csv',
-    tierTableToCsv(employees, proficiencyLevels, skillRarity),
+    skillDataToCsv(employees, proficiencyLevels, skillRarity),
   ));
 
   const toolbarRight = createElement('div', 'report-table__toolbar-right');

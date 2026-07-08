@@ -102,7 +102,7 @@ Manager-facing report with two tables. Content width capped at 1280px, centred w
 - Rose tier theming — `--tier-accent` CSS variable ramping light (common) → deep (rare); kept distinct from multicolour proficiency badges
 - Single-letter proficiency badge (F/D/P/E/M) next to each skill name
 - Sticky employee column
-- **Export CSV** (`tierTableToCsv`) — mirrors the on-screen layout 1:1
+- **Export CSV** (`skillDataToCsv`) — a flat, one-row-per-skill export: `Employee, Rarity Tier, Skill, Proficiency Code, Proficiency Level, Experience (Months)`. Employees alphabetical; within each, skills grouped in tier order then alphabetical. Downloaded with a UTF-8 BOM so Excel keeps accented characters. (Mirrors the "Data" sheet of the reference workbook, not the on-screen grid.)
 
 #### Table 2 — "Skill Distribution" (`renderDistributionTable`)
 
