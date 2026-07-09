@@ -1,6 +1,6 @@
-import logout, { getSessionUser } from '../../scripts/auth.js';
+import logout from '../../scripts/auth.js';
 import buildViewToggle from '../../scripts/view-toggle.js';
-import { isManager } from '../../scripts/employee-mapping.js';
+import { getUserProfile, showFallbackPage } from '../../scripts/profile.js';
 
 export default async function decorate(block) {
   const nav = document.createElement('nav');
@@ -77,12 +77,18 @@ export default async function decorate(block) {
   block.textContent = '';
   block.append(nav);
 
-  // Inject the view toggle for managers, left of the logout button.
+  // Fetch the user's profile (role) and, for managers/admins, show the view
+  // toggle. The role is dispatched as a custom event so other blocks can react.
+  // Redirect decisions are NOT made here — only in the gated page blocks.
+  // If the profile can't be loaded, the whole page is replaced with a fallback.
   try {
-    const user = await getSessionUser();
-    if (await isManager(user?.email)) {
+    const profile = await getUserProfile();
+    document.dispatchEvent(new CustomEvent('skillmapping:profile', { detail: profile }));
+    if (profile?.role === 'manager' || profile?.role === 'admin') {
       const currentView = window.location.pathname.startsWith('/employee-details') ? 'report' : 'entry';
       actions.prepend(buildViewToggle(currentView));
     }
-  } catch { /* leave header unchanged if session lookup fails */ }
+  } catch {
+    showFallbackPage();
+  }
 }

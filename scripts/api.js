@@ -1,5 +1,6 @@
 const API_BASE_URL = 'https://293924-uiprojectdashboard-stage.adobeio-static.net/api/v1/web/uiprojectdashboard';
 const SKILL_REPORT_URL = `${API_BASE_URL}/skillReport`;
+const PROFILE_URL = `${API_BASE_URL}/getProfile`;
 
 let levelsCache = null;
 
@@ -90,6 +91,14 @@ export function buildSkillsPayload(employeeId, email, name, skillEntries) {
       return skill;
     }),
   };
+}
+
+/**
+ * Returns the current user's profile and role.
+ * @returns {Promise<{empLdap: string, empEmail: string, userId: string, role: string}>}
+ */
+export async function getProfile() {
+  return requestJson(PROFILE_URL);
 }
 
 export async function getSkillReport() {

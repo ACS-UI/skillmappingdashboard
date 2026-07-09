@@ -1,7 +1,7 @@
 import { getSkillReport } from '../../scripts/api.js';
-import { getSessionUser, isTestEnvironment } from '../../scripts/auth.js';
+import { getUserProfile, showFallbackPage } from '../../scripts/profile.js';
 import {
-  isManager, getDirectReports, normalizeLdap, getAllEmployeeRecords,
+  getDirectReports, normalizeLdap, getAllEmployeeRecords,
 } from '../../scripts/employee-mapping.js';
 import { showSpinner, hideSpinner } from '../../scripts/spinner.js';
 
@@ -71,12 +71,6 @@ function groupSkillsByTier(skills, skillRarity) {
   return byTier;
 }
 
-// An employee's skills flattened in tier order (Generic → Ultra niche), then
-// alphabetically within a tier — the order used by the CSV export.
-function sortedTierSkills(emp, skillRarity) {
-  return [...groupSkillsByTier(emp.skills, skillRarity).values()].flat();
-}
-
 /**
  * Computes a rarity tier per skill from how many employees across the whole
  * report hold it. Common skills are "generic", rare ones "ultra niche".
@@ -117,51 +111,44 @@ function getLevelInitial(proficiencyLevels, level) {
   return label && label !== '—' ? label.charAt(0).toUpperCase() : '';
 }
 
-// Produces a CSV that mirrors the two-row thead (group + sub-header) and the
-// rowspan body of the on-screen tier table so the export is 1:1 with what is
-// displayed: Employee name only on the first skill row, skill placed under its
-// matching tier column, all other tier columns empty for that row.
-function tierTableToCsv(employees, proficiencyLevels, skillRarity) {
-  // Row 1: Employee | Generic | "" | Niche | "" | …  (mirrors colspan-2 banners)
-  const groupRow = ['Employee'];
-  // Row 2: ""       | Skill   | Months | Skill | Months | … (sub-column headers)
-  const subRow = [''];
-  RARITY_TIERS.forEach((tier) => {
-    groupRow.push(tier.label, '');
-    subRow.push('Skill', 'Months');
-  });
+// Produces a flat, one-row-per-skill CSV: Employee, Rarity Tier, Skill,
+// Proficiency Code, Proficiency Level, Experience (Months). Employees are
+// alphabetical; within each, skills are grouped in tier order then alphabetical
+// (via groupSkillsByTier). Skills below the lowest rarity tier are omitted,
+// matching what the tables display.
+function skillDataToCsv(employees, proficiencyLevels, skillRarity) {
+  const header = ['Employee', 'Rarity Tier', 'Skill', 'Proficiency Code',
+    'Proficiency Level', 'Experience (Months)'];
+  const rows = [header];
 
-  const dataRows = [];
-  employees.forEach((emp) => {
-    const skills = sortedTierSkills(emp, skillRarity);
-    if (skills.length === 0) {
-      dataRows.push([emp.name, ...RARITY_TIERS.flatMap(() => ['', ''])]);
-      return;
-    }
-    skills.forEach((skill, index) => {
-      // Mirror the on-screen rowspan: name only on the employee's first row.
-      const row = [index === 0 ? emp.name : ''];
-      const skillTierId = getSkillTier(skill.name, skillRarity)?.id;
-      RARITY_TIERS.forEach((tier) => {
-        if (tier.id === skillTierId) {
-          const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-          row.push(initial ? `${skill.name} (${initial})` : skill.name);
-          row.push(skill.expInMonths != null ? `${skill.expInMonths} M` : '');
-        } else {
-          row.push('', '');
-        }
+  [...employees]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((emp) => {
+      groupSkillsByTier(emp.skills, skillRarity).forEach((skills, tierId) => {
+        const tier = RARITY_TIERS.find((t) => t.id === tierId);
+        skills.forEach((skill) => {
+          rows.push([
+            emp.name,
+            tier.label,
+            skill.name,
+            getLevelInitial(proficiencyLevels, skill.proficiencyLevel),
+            getLevelLabel(proficiencyLevels, skill.proficiencyLevel),
+            skill.expInMonths != null ? skill.expInMonths : '',
+          ]);
+        });
       });
-      dataRows.push(row);
     });
-  });
 
-  return [groupRow, subRow, ...dataRows]
+  return rows
     .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
     .join('\n');
 }
 
 function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  // Prepend a UTF-8 BOM so Excel opens the file with the right encoding
+  // (keeps accented names and symbols intact).
+  const bom = String.fromCharCode(0xFEFF);
+  const blob = new Blob([bom, content], { type: 'text/csv;charset=utf-8' });
   const href = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = href;
@@ -170,21 +157,68 @@ function downloadCsv(filename, content) {
   URL.revokeObjectURL(href);
 }
 
+// Builds one employee's skills grouped into rarity-tier sections for the detail
+// pane: each tier a colour-coded block (rarity "heat" ramp) with rarity pips, a
+// skill count, and the skills flowing across a grid.
+function buildDetailSections(emp, proficiencyLevels, skillRarity) {
+  const byTier = groupSkillsByTier(emp.skills, skillRarity);
+  const total = [...byTier.values()].reduce((sum, s) => sum + s.length, 0);
+
+  const head = createElement('div', 'report-table__md-detail-head');
+  head.append(
+    createElement('h3', 'report-table__md-detail-name', emp.name),
+    createElement('span', 'report-table__md-detail-meta', `${total} skill${total === 1 ? '' : 's'}`),
+  );
+
+  const tiers = createElement('div', 'report-table__md-tiers');
+  RARITY_TIERS.forEach((tier, idx) => {
+    const skills = byTier.get(tier.id) || [];
+    if (!skills.length) return;
+    const section = createElement('div', `report-table__md-tier report-table__md-tier--${tier.id}`);
+
+    // Header: tier name + rarity pips (1 = common … 4 = rarest) + skill count.
+    const tierHead = createElement('div', 'report-table__md-tier-head');
+    tierHead.append(createElement('span', 'report-table__md-tier-name', tier.label));
+    const pips = createElement('span', 'report-table__md-pips');
+    pips.title = `Rarity ${idx + 1} of ${RARITY_TIERS.length}`;
+    for (let i = 0; i < RARITY_TIERS.length; i += 1) {
+      pips.append(createElement('span', `report-table__md-pip${i <= idx ? ' report-table__md-pip--on' : ''}`));
+    }
+    tierHead.append(
+      pips,
+      createElement('span', 'report-table__md-tier-count', `${skills.length} skill${skills.length === 1 ? '' : 's'}`),
+    );
+    section.append(tierHead);
+
+    const grid = createElement('div', 'report-table__md-tier-grid');
+    skills.forEach((skill) => {
+      const row = createElement('div', 'report-table__md-skill');
+      const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
+      row.append(createElement('span', 'report-table__skill-label', skill.name));
+      if (initial) {
+        row.append(createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
+      }
+      row.append(createElement('span', 'report-table__md-months', skill.expInMonths != null ? `${skill.expInMonths} M` : '—'));
+      grid.append(row);
+    });
+    section.append(grid);
+    tiers.append(section);
+  });
+
+  return [head, tiers];
+}
+
 /**
- * Renders the per-employee "skills by rarity tier" table: one column group per
- * rarity tier (Generic → Ultra niche), each split into a Skill (with level
- * initial) and an Experience sub-column. Each of an employee's skills becomes a
- * row, with its name+level and months placed under the tier that matches its
- * org-wide rarity; the employee name spans all of their skill rows.
- * @param {Element} body the block body to append the table into
+ * Renders the "Skill Data" tab as a master/detail view: a scrollable sidebar of
+ * employees on the left, and the selected employee's skills grouped into rarity
+ * tiers on the right. Only one employee renders at a time, so the view stays
+ * compact for large teams and for people with many skills.
+ * @param {Element} body the block body to append the view into
  * @param {Array} employees the (filtered) employees to display
  * @param {Array} proficiencyLevels level metadata from the API
  * @param {Map} skillRarity per-skill rarity info from computeSkillRarity()
  */
-function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
-  const PAGE_SIZE = 10;
-  let filtered = employees;
-
+function renderMasterDetail(body, employees, proficiencyLevels, skillRarity) {
   const searchWrap = createElement('div', 'report-table__search-wrap');
   const searchInput = createElement('input', 'report-table__search');
   searchInput.type = 'search';
@@ -192,140 +226,58 @@ function renderTierTable(body, employees, proficiencyLevels, skillRarity) {
   searchInput.setAttribute('aria-label', 'Search employees');
   searchWrap.append(searchInput);
 
-  // Mobile card list (hidden at >= 600px via CSS)
-  const cardList = createElement('div', 'report-table__tier-cards');
+  const md = createElement('div', 'report-table__md');
+  const list = createElement('div', 'report-table__md-list');
+  const detail = createElement('div', 'report-table__md-detail');
+  md.append(list, detail);
+  body.append(searchWrap, md);
 
-  // Desktop table — thead is static, tbody is repopulated per page
-  const tableWrapper = createElement('div', 'report-table__table-wrapper report-table__table-wrapper--tiers');
-  const table = createElement('table', 'report-table__table report-table__table--tiers');
+  let activeName = employees[0] ? employees[0].name : null;
 
-  const thead = document.createElement('thead');
-  const groupRow = document.createElement('tr');
-  const employeeTh = createElement('th', 'report-table__col-employee', 'Employee');
-  employeeTh.rowSpan = 2;
-  groupRow.append(employeeTh);
-  const subRow = document.createElement('tr');
-  RARITY_TIERS.forEach((tier) => {
-    const th = createElement('th', `report-table__group report-table__group--${tier.id}`, tier.label);
-    th.colSpan = 2;
-    groupRow.append(th);
-    subRow.append(
-      createElement('th', `report-table__col-skill report-table__tier report-table__tier--${tier.id} report-table__tier--lead`, 'Skill'),
-      createElement('th', `report-table__col-skill report-table__tier report-table__tier--${tier.id} report-table__tier--trail`, 'Months'),
-    );
-  });
-  thead.append(groupRow, subRow);
-  table.append(thead);
-
-  const tbody = document.createElement('tbody');
-  table.append(tbody);
-  tableWrapper.append(table);
-
-  const pagination = createElement('div', 'report-table__pagination');
-  const emptyMsg = createElement('p', 'report-table__search-empty', 'No employees match your search.');
-  emptyMsg.hidden = true;
-
-  body.append(searchWrap, cardList, tableWrapper, emptyMsg, pagination);
-
-  function renderPage(page) {
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-    const hasResults = filtered.length > 0;
-    emptyMsg.hidden = hasResults;
-    tableWrapper.hidden = !hasResults;
-    cardList.hidden = !hasResults;
-    if (!hasResults) { pagination.textContent = ''; return; }
-    const start = page * PAGE_SIZE;
-    const pageEmployees = filtered.slice(start, start + PAGE_SIZE);
-
-    // ── Mobile cards ──
-    cardList.textContent = '';
-    pageEmployees.forEach((emp) => {
-      const byTier = groupSkillsByTier(emp.skills, skillRarity);
-      const card = createElement('div', 'report-table__emp-card');
-      card.append(createElement('div', 'report-table__emp-card-name', emp.name));
-      const tiersDiv = createElement('div', 'report-table__emp-card-tiers');
-      RARITY_TIERS.forEach((tier) => {
-        const tierSkills = byTier.get(tier.id) || [];
-        if (!tierSkills.length) return;
-        const section = createElement('div', `report-table__emp-card-tier report-table__emp-card-tier--${tier.id}`);
-        section.append(createElement('div', 'report-table__emp-card-tier-label', tier.label));
-        const skillsDiv = createElement('div', 'report-table__emp-card-skills');
-        tierSkills.forEach((skill) => {
-          const skillRow = createElement('div', 'report-table__emp-card-skill');
-          const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-          skillRow.append(createElement('span', 'report-table__skill-label', skill.name));
-          if (initial) {
-            skillRow.append(createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
-          }
-          skillRow.append(createElement('span', 'report-table__emp-card-months', skill.expInMonths != null ? `${skill.expInMonths} M` : '—'));
-          skillsDiv.append(skillRow);
-        });
-        section.append(skillsDiv);
-        tiersDiv.append(section);
-      });
-      card.append(tiersDiv);
-      cardList.append(card);
-    });
-
-    // ── Desktop table body ──
-    tbody.textContent = '';
-    pageEmployees.forEach((emp) => {
-      const byTier = groupSkillsByTier(emp.skills, skillRarity);
-      const rowCount = Math.max(...[...byTier.values()].map((s) => s.length), 1);
-      for (let i = 0; i < rowCount; i += 1) {
-        const tr = document.createElement('tr');
-        if (i === 0) {
-          tr.classList.add('report-table__row--emp-start');
-          const nameTd = createElement('td', 'report-table__cell-employee', emp.name);
-          nameTd.rowSpan = rowCount;
-          tr.append(nameTd);
-        }
-        RARITY_TIERS.forEach((tier) => {
-          const skill = byTier.get(tier.id)?.[i];
-          const skillTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--lead`);
-          const monthsTd = createElement('td', `report-table__tier report-table__tier--${tier.id} report-table__tier--trail`);
-          if (skill) {
-            const name = createElement('span', 'report-table__skill-label', skill.name);
-            const initial = getLevelInitial(proficiencyLevels, skill.proficiencyLevel);
-            if (initial) {
-              skillTd.append(name, createElement('span', `report-table__badge report-table__badge--l${skill.proficiencyLevel}`, `(${initial})`));
-            } else {
-              skillTd.append(name);
-            }
-            monthsTd.textContent = skill.expInMonths != null ? `${skill.expInMonths} M` : '—';
-          }
-          tr.append(skillTd, monthsTd);
-        });
-        tbody.append(tr);
-      }
-    });
-
-    // ── Pagination controls ──
-    pagination.textContent = '';
-    if (totalPages <= 1) return;
-
-    const prevBtn = createElement('button', 'report-table__page-btn', '← Prev');
-    prevBtn.type = 'button';
-    prevBtn.disabled = page === 0;
-    prevBtn.addEventListener('click', () => renderPage(page - 1));
-
-    const pageInfo = createElement('span', 'report-table__page-info', `${page + 1} of ${totalPages}`);
-
-    const nextBtn = createElement('button', 'report-table__page-btn', 'Next →');
-    nextBtn.type = 'button';
-    nextBtn.disabled = page === totalPages - 1;
-    nextBtn.addEventListener('click', () => renderPage(page + 1));
-
-    pagination.append(prevBtn, pageInfo, nextBtn);
+  function renderDetail(emp) {
+    detail.textContent = '';
+    if (!emp) {
+      detail.append(createElement('p', 'report-table__md-empty', 'No employees match your search.'));
+      return;
+    }
+    detail.append(...buildDetailSections(emp, proficiencyLevels, skillRarity));
   }
+
+  function renderList(items) {
+    list.textContent = '';
+    list.append(createElement('div', 'report-table__md-count', `${items.length} employee${items.length === 1 ? '' : 's'}`));
+    items.forEach((emp) => {
+      const btn = createElement('button', 'report-table__md-item');
+      btn.type = 'button';
+      btn.append(
+        createElement('span', 'report-table__md-item-name', emp.name),
+        createElement('span', 'report-table__md-item-count', `${emp.skills.length}`),
+      );
+      if (emp.name === activeName) btn.classList.add('report-table__md-item--active');
+      btn.addEventListener('click', () => {
+        activeName = emp.name;
+        list.querySelectorAll('.report-table__md-item').forEach((b) => b.classList.remove('report-table__md-item--active'));
+        btn.classList.add('report-table__md-item--active');
+        renderDetail(emp);
+      });
+      list.append(btn);
+    });
+  }
+
+  renderList(employees);
+  renderDetail(employees[0]);
 
   searchInput.addEventListener('input', () => {
     const q = searchInput.value.trim().toLowerCase();
-    filtered = q ? employees.filter((emp) => emp.name.toLowerCase().includes(q)) : employees;
-    renderPage(0);
+    const matches = q ? employees.filter((emp) => emp.name.toLowerCase().includes(q)) : employees;
+    // Keep the current selection if it survives the filter, else jump to the
+    // first match so the detail pane always reflects the visible list.
+    if (!matches.some((emp) => emp.name === activeName)) {
+      activeName = matches[0] ? matches[0].name : null;
+      renderDetail(matches[0] || null);
+    }
+    renderList(matches);
   });
-
-  renderPage(0);
 }
 
 /**
@@ -592,7 +544,7 @@ function renderTable(block, config, data, skillRarity, distribution) {
   exportBtn.type = 'button';
   exportBtn.addEventListener('click', () => downloadCsv(
     'skill-report.csv',
-    tierTableToCsv(employees, proficiencyLevels, skillRarity),
+    skillDataToCsv(employees, proficiencyLevels, skillRarity),
   ));
 
   const toolbarRight = createElement('div', 'report-table__toolbar-right');
@@ -604,7 +556,7 @@ function renderTable(block, config, data, skillRarity, distribution) {
   // ── Panels ──
   const tierPanel = createElement('div', 'report-table__panel report-table__panel--active');
   tierPanel.dataset.panel = 'tier';
-  renderTierTable(tierPanel, employees, proficiencyLevels, skillRarity);
+  renderMasterDetail(tierPanel, employees, proficiencyLevels, skillRarity);
 
   const distPanel = createElement('div', 'report-table__panel');
   distPanel.dataset.panel = 'distribution';
@@ -637,15 +589,15 @@ function renderTable(block, config, data, skillRarity, distribution) {
 
 /**
  * Restricts the employee list to the logged-in manager's direct reports.
- * When there is no authenticated user (local/preview, where auth is skipped)
- * the full list is returned so the view remains testable.
+ * When no manager LDAP is known the full list is returned so the view stays
+ * testable.
  * @param {Array} employees employees from the skill-report API
- * @param {object|null} user the IndexDB user record
+ * @param {string} managerLdap the logged-in user's LDAP (profile.empLdap)
  * @returns {Promise<Array>}
  */
-async function filterToDirectReports(employees, user) {
-  if (!user?.ldap) return employees;
-  const reportKeys = new Set((await getDirectReports(user.ldap)).map((report) => report.ldap));
+async function filterToDirectReports(employees, managerLdap) {
+  if (!managerLdap) return employees;
+  const reportKeys = new Set((await getDirectReports(managerLdap)).map((report) => report.ldap));
   return employees.filter((emp) => reportKeys.has(normalizeLdap(emp.email || emp.employeeId)));
 }
 
@@ -654,15 +606,18 @@ export default async function decorate(block) {
   block.textContent = '';
   showSpinner('Loading skill report…');
 
-  let user = null;
+  let profile = null;
   try {
-    user = await getSessionUser();
-  } catch { /* treat as unidentified */ }
+    profile = await getUserProfile();
+  } catch {
+    hideSpinner();
+    showFallbackPage();
+    return;
+  }
 
-  // Only verified managers may view this report. Outside test environments an
-  // unidentified user (no SSO record) is denied as well.
-  const allowed = await isManager(user?.email) || isTestEnvironment();
-  if (!allowed) {
+  // Role is the source of truth: only managers and admins may view this report;
+  // employees are sent back to the homepage.
+  if (profile?.role !== 'manager' && profile?.role !== 'admin') {
     hideSpinner();
     window.location.replace('/');
     return;
@@ -672,7 +627,7 @@ export default async function decorate(block) {
     const data = await getSkillReport();
     // Rarity is computed across the whole workforce before filtering to the team.
     const skillRarity = computeSkillRarity(data.employees);
-    const employees = await filterToDirectReports(data.employees, user);
+    const employees = await filterToDirectReports(data.employees, profile.empLdap);
 
     if (employees.length === 0) {
       hideSpinner();
